@@ -73,3 +73,27 @@ test('settings 기본값과 수정', async () => {
   expect((await repo.getSettings()).deloadEveryLaps).toBe(5);
   expect((await repo.getSettings()).backupReminderDays).toBe(14);
 });
+
+describe('changeMeasure', () => {
+  const ex0 = { name: '플랭크', type: 'bodyweight' as const, incrementKg: 0, primaryMuscles: [], secondaryMuscles: [], note: '' };
+  test('단위를 바꾸면 그 운동이 든 루틴의 목표 범위를 새 단위 기본값으로', async () => {
+    const e = await repo.saveExercise(ex0);
+    const other = await repo.saveExercise({ ...ex0, name: '푸시업' });
+    const r = await repo.saveRoutine({ name: 'A', kind: 'workout', intensity: null, order: 0, items: [
+      { exerciseId: e.id, order: 0, targetRepsMin: 8, targetRepsMax: 10 },
+      { exerciseId: other.id, order: 1, targetRepsMin: 12, targetRepsMax: 15 },
+    ] });
+    const changed = await repo.changeMeasure(e.id, 'seconds');
+    expect(changed).toBe(1);
+    expect((await repo.getExercise(e.id))?.measure).toBe('seconds');
+    const items = (await repo.listRoutines()).find((x) => x.id === r.id)!.items;
+    expect(items[0]).toMatchObject({ targetRepsMin: 30, targetRepsMax: 60 });
+    expect(items[1]).toMatchObject({ targetRepsMin: 12, targetRepsMax: 15 });
+    await repo.changeMeasure(e.id, 'reps');
+    expect((await repo.listRoutines())[0].items[0]).toMatchObject({ targetRepsMin: 8, targetRepsMax: 10 });
+  });
+  test('같은 단위면 아무것도 바꾸지 않는다', async () => {
+    const e = await repo.saveExercise(ex0);
+    expect(await repo.changeMeasure(e.id, 'reps')).toBe(0);
+  });
+});

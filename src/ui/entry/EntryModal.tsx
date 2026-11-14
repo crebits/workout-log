@@ -22,7 +22,11 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const close = async () => { if (await s.flush()) onClose(); };
+  const [quickPending, setQuickPending] = useState(false);
+  const close = async () => {
+    if (quickPending && !window.confirm('추가하지 않은 운동이 있어요. 닫을까요?')) return;
+    if (await s.flush()) onClose();
+  };
   const routine = s.routines.find((r) => r.id === s.draft.routineId);
   const isRest = routine?.kind === 'rest';
   const deloadSuggested = !!s.status && !s.status.deload.active && (s.status.deload.due || s.status.stallSignal);
@@ -75,7 +79,7 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
                 onEditExercise={() => setEditing(s.exercises.get(b.exerciseId) ?? null)} />
             ))}
             {editing && <ExerciseForm key={editing.id} initial={editing} onSaved={() => setEditing(null)} onCancel={() => setEditing(null)} />}
-            <QuickAdd date={date} entries={s.entries} exercises={s.exercises} onAdd={(ex, sets) => setBlocks((bs) => {
+            <QuickAdd date={date} entries={s.entries} exercises={s.exercises} onPendingChange={setQuickPending} onAdd={(ex, sets) => setBlocks((bs) => {
               // 같은 운동이 이미 있으면 그 운동에 세트를 이어 붙인다
               const i = bs.findIndex((b) => b.exerciseId === ex.id);
               if (i < 0) return [...bs, { exerciseId: ex.id, order: bs.length, sets }];

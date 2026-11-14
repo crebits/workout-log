@@ -43,7 +43,7 @@ export function computePRs(ex: Exercise, entries: Entry[]): PRs {
       if (ex.type === 'weight') {
         const curW = pr.maxWeight;
         if (s.weightKg && (!curW || s.weightKg > curW.value || (s.weightKg === curW.value && (count ?? 0) > (curW.reps ?? 0)))) {
-          pr.maxWeight = { value: s.weightKg, date: e.date, reps: count ?? 0 };
+          pr.maxWeight = count === undefined ? { value: s.weightKg, date: e.date } : { value: s.weightKg, date: e.date, reps: count };
         }
         consider(countKey, count, e.date);
         if (m === 'reps') consider('bestE1rm', s.weightKg && s.reps ? e1rm(s.weightKg, s.reps) : null, e.date);

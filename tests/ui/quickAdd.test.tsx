@@ -101,3 +101,56 @@ test('기록 화면: 최장 시간 60s', async () => {
   expect(await screen.findByText('60s')).toBeInTheDocument();
   expect(screen.getByText('최장 시간')).toBeInTheDocument();
 });
+
+describe('리뷰 미뤄 둔 것', () => {
+  test('단위를 바꿔도 입력한 무게·세트 수는 유지, 횟수 칸만 다시 채움', async () => {
+    const g = await pick('벤치프레스');
+    fireEvent.change(within(g).getByLabelText('무게'), { target: { value: '90' } });
+    fireEvent.change(within(g).getByLabelText('세트 수'), { target: { value: '5' } });
+    fireEvent.click(within(g).getByRole('button', { name: '단위 바꾸기' }));
+    const g2 = await screen.findByRole('group', { name: '벤치프레스 추가' });
+    await within(g2).findByLabelText('시간(초)');
+    expect(within(g2).getByLabelText('무게')).toHaveValue('90');
+    expect(within(g2).getByLabelText('세트 수')).toHaveValue('5');
+    expect(within(g2).getByLabelText('시간(초)')).toHaveValue('');
+  });
+  test('숫자가 아닌 입력이나 소수 횟수면 추가 비활성', async () => {
+    const g = await pick('벤치프레스');
+    fireEvent.change(within(g).getByLabelText('무게'), { target: { value: '80kg' } });
+    expect(within(g).getByRole('button', { name: '추가' })).toBeDisabled();
+    fireEvent.change(within(g).getByLabelText('무게'), { target: { value: '80' } });
+    fireEvent.change(within(g).getByLabelText('횟수'), { target: { value: '8.5' } });
+    expect(within(g).getByRole('button', { name: '추가' })).toBeDisabled();
+    fireEvent.change(within(g).getByLabelText('횟수'), { target: { value: '8' } });
+    expect(within(g).getByRole('button', { name: '추가' })).toBeEnabled();
+  });
+  test('단위 바꾸기 저장이 실패하면 알린다', async () => {
+    const g = await pick('벤치프레스');
+    vi.spyOn(repo, 'changeMeasure').mockRejectedValueOnce(new Error('x'));
+    fireEvent.click(within(g).getByRole('button', { name: '단위 바꾸기' }));
+    expect(await within(g).findByRole('alert')).toHaveTextContent('단위를 바꾸지 못했어요');
+    vi.restoreAllMocks();
+  });
+  test('단위를 바꾸면 루틴 범위도 바꿨다고 알린다', async () => {
+    await repo.saveRoutine({ name: 'A', kind: 'workout', intensity: null, order: 0, items: [{ exerciseId: plank.id, order: 0, targetRepsMin: 8, targetRepsMax: 10 }] });
+    const g = await pick('플랭크');
+    fireEvent.click(within(g).getByRole('button', { name: '단위 바꾸기' }));
+    expect(await screen.findByText(/루틴 1개의 목표 범위를 30~60s로 바꿨어요/)).toBeInTheDocument();
+  });
+  test('추가하지 않은 운동이 있으면 닫기 전에 확인', async () => {
+    const onClose = vi.fn();
+    render(<EntryModal date="2026-11-20" onClose={onClose} />);
+    fireEvent.change(await screen.findByLabelText('운동 추가'), { target: { value: '벤치프레스' } });
+    fireEvent.click(await screen.findByRole('option', { name: '벤치프레스' }));
+    await screen.findByRole('group', { name: '벤치프레스 추가' });
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(confirm).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    confirm.mockReturnValue(true);
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    vi.restoreAllMocks();
+  });
+});

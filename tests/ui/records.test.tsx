@@ -39,3 +39,10 @@ test('기록이 없으면 안내', async () => {
   render(<RecordsScreen onOpenDate={() => {}} />);
   expect(await screen.findByText(/아직 기록이 없어요/)).toBeInTheDocument();
 });
+
+test('최고 무게에 횟수가 없으면 "× n" 없이', async () => {
+  const c = await repo.saveExercise({ name: '파머스', type: 'weight', incrementKg: 2.5, primaryMuscles: [], secondaryMuscles: [], note: '', measure: 'seconds' });
+  await repo.saveEntry({ date: '2026-11-01', routineId: null, isDeload: false, memo: '', exercises: [{ exerciseId: c.id, order: 0, sets: [{ isWarmup: false, weightKg: 100, reps: 5 }] }] });
+  render(<RecordsScreen onOpenDate={() => {}} />);
+  expect(await screen.findByText('100kg')).toBeInTheDocument();
+});

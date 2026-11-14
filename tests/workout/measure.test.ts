@@ -91,3 +91,8 @@ describe('리뷰 수정: 단위 전환', () => {
     expect(summarizeSets(plank, [{ isWarmup: false, reps: 8 }, t(60)])).toBe('8회,60s');
   });
 });
+
+test('시간 운동의 최고 무게가 옛 횟수 세트에서 나오면 횟수 없이 저장', () => {
+  const pr = computePRs(carry, [entry('2026-11-01', { exercises: [block(carry.id, [{ isWarmup: false, weightKg: 100, reps: 5 }])] })]);
+  expect(pr.maxWeight).toEqual({ value: 100, date: '2026-11-01' });
+});

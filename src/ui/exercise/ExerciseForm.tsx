@@ -24,9 +24,15 @@ export function ExerciseForm(p: { initial?: Exercise; initialName?: string; onSa
     const dup = await repo.findExerciseByName(name);
     if (dup && dup.id !== init?.id) return setError('같은 이름의 운동이 이미 있어요');
     const ex = await repo.saveExercise({
-      ...(init ?? {}), name, type, incrementKg: parseNum(inc) ?? DEFAULT_INCREMENT_KG, measure: type === 'cardio' ? undefined : measure,
+      // 기존 운동의 단위 변경은 아래 changeMeasure로 (루틴 목표 범위도 함께 바꾸려고)
+      ...(init ?? {}), name, type, incrementKg: parseNum(inc) ?? DEFAULT_INCREMENT_KG, measure: type === 'cardio' ? undefined : (init ? init.measure : measure),
       primaryMuscles: primary, secondaryMuscles: secondary.filter((m) => !primary.includes(m)), note: note.trim(),
     });
+    if (init && type !== 'cardio' && (init.measure ?? 'reps') !== measure) {
+      await repo.changeMeasure(ex.id, measure);
+      p.onSaved({ ...ex, measure });
+      return;
+    }
     p.onSaved(ex);
   };
   const remove = async () => {

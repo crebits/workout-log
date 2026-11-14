@@ -27,6 +27,9 @@ function stamp<T extends BaseRecord>(input: Input<T>, existing?: T): T {
   } as T;
 }
 
+/** 단위를 바꿀 때 루틴 목표 범위 기본값 */
+export const DEFAULT_RANGE = { reps: { min: 8, max: 10 }, seconds: { min: 30, max: 60 } } as const;
+
 export const isEmptyDraft = (d: EntryDraft) => d.routineId === null && d.memo.trim() === '' && d.exercises.length === 0;
 
 export const repo = {
@@ -44,6 +47,26 @@ export const repo = {
     const rec = stamp<Exercise>({ ...input, name: input.name.trim() }, existing);
     await db.exercises.put(rec);
     return rec;
+  },
+  /**
+   * 운동의 세는 방식(횟수/시간)을 바꾼다. 그 운동이 든 루틴의 목표 범위는 새 단위의 기본값으로 바꾼다
+   * (8~10회가 8~10초로 읽히지 않게). 바뀐 루틴 수를 돌려준다.
+   */
+  async changeMeasure(id: string, measure: 'reps' | 'seconds'): Promise<number> {
+    return db.transaction('rw', db.exercises, db.routines, async () => {
+      const ex = await db.exercises.get(id);
+      if (!ex || (ex.measure ?? 'reps') === measure) return 0;
+      await db.exercises.put({ ...ex, measure, updatedAt: now() });
+      const range = DEFAULT_RANGE[measure];
+      let changed = 0;
+      for (const r of await db.routines.toArray()) {
+        if (r.deletedAt || !r.items.some((i) => i.exerciseId === id)) continue;
+        const items = r.items.map((i) => (i.exerciseId === id ? { ...i, targetRepsMin: range.min, targetRepsMax: range.max } : i));
+        await db.routines.put({ ...r, items, updatedAt: now() });
+        changed++;
+      }
+      return changed;
+    });
   },
   async deleteExercise(id: string): Promise<void> {
     await db.exercises.update(id, { deletedAt: now(), updatedAt: now() });
