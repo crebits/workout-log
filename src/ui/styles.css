@@ -106,3 +106,18 @@ textarea { width: 100%; resize: vertical; }
 .routine-row .name { font-weight: 600; }
 .item-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
 .item-name { flex: 1; min-width: 6em; font-weight: 600; }
+
+.cards { display: grid; gap: 8px; margin-top: 10px; }
+.card { background: var(--surface); border-radius: var(--radius); padding: 12px; text-align: left; display: grid; gap: 6px; }
+.card header { display: flex; justify-content: space-between; align-items: baseline; }
+.prs { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; margin: 0; }
+.prs div { display: grid; }
+.prs dt { font-size: .72rem; color: var(--muted); }
+.prs dd { margin: 0; font-weight: 600; font-size: .92rem; }
+.prs dd.small { font-weight: 400; }
+.detail { display: grid; gap: 10px; }
+.chart { background: var(--surface); border-radius: var(--radius); padding: 8px 4px; }
+.history { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.history button { width: 100%; text-align: left; background: var(--surface); border-radius: var(--radius); padding: 10px; display: grid; grid-template-columns: 3.2em 1fr; gap: 2px 8px; }
+.history .date { font-weight: 700; grid-row: span 2; }
+.history .meta { display: flex; gap: 6px; font-size: .78rem; color: var(--muted); align-items: center; flex-wrap: wrap; }
