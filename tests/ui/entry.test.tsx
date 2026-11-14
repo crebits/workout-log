@@ -74,6 +74,7 @@ test('유산소 32분 5.2km → 6\'09"/km 표시', async () => {
   const add = await screen.findByLabelText('운동 추가');
   fireEvent.change(add, { target: { value: '러닝' } });
   fireEvent.keyDown(add, { key: 'Enter' });
+  fireEvent.click(within(await screen.findByRole('group', { name: '러닝 추가' })).getByRole('button', { name: '추가' }));
   fireEvent.change(await screen.findByLabelText('1세트 시간(분)'), { target: { value: '32' } });
   fireEvent.change(screen.getByLabelText('1세트 거리(km)'), { target: { value: '5.2' } });
   expect(await screen.findByText('6\'09"/km')).toBeInTheDocument();
@@ -85,8 +86,12 @@ test('루틴 등록: 현재 순서로 새 루틴 생성, 범위 7~9', async () =
   const add = await screen.findByLabelText('운동 추가');
   fireEvent.change(add, { target: { value: '벤치프레스' } });
   fireEvent.keyDown(add, { key: 'Enter' });
-  fireEvent.change(await screen.findByLabelText('1세트 무게'), { target: { value: '80' } });
-  fireEvent.change(screen.getByLabelText('1세트 횟수'), { target: { value: '7' } });
+  const quick = await screen.findByRole('group', { name: '벤치프레스 추가' });
+  fireEvent.change(within(quick).getByLabelText('무게'), { target: { value: '80' } });
+  fireEvent.change(within(quick).getByLabelText('횟수'), { target: { value: '7' } });
+  fireEvent.change(within(quick).getByLabelText('세트 수'), { target: { value: '1' } });
+  fireEvent.click(within(quick).getByRole('button', { name: '추가' }));
+  expect(await screen.findByLabelText('1세트 무게')).toHaveValue('80');
   fireEvent.click(screen.getByRole('button', { name: '⭐ 루틴 등록' }));
   const panel = await screen.findByRole('group', { name: '루틴 등록' });
   fireEvent.change(within(panel).getByLabelText('새 루틴 이름'), { target: { value: '새 가슴' } });

@@ -42,7 +42,7 @@ export function ExerciseBlock(p: {
         </p>
       )}
       {p.block.sets.map((s, i) => (
-        <SetRow key={i} type={ex?.type ?? 'weight'} set={s} number={s.isWarmup ? null : ++workNo} incrementKg={ex?.incrementKg || 2.5}
+        <SetRow key={i} type={ex?.type ?? 'weight'} measure={ex?.measure} set={s} number={s.isWarmup ? null : ++workNo} incrementKg={ex?.incrementKg || 2.5}
           onChange={(ns) => setSets(p.block.sets.map((x, j) => (j === i ? ns : x)))}
           onRemove={() => setSets(p.block.sets.filter((_, j) => j !== i))} />
       ))}

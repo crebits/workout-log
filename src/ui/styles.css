@@ -129,3 +129,7 @@ textarea { width: 100%; resize: vertical; }
 .file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .install-guide { display: flex; gap: 8px; align-items: flex-start; background: var(--accent-soft); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 12px; font-size: .88rem; }
 .install-guide p { margin: 0; flex: 1; }
+
+.quick-add .row { gap: 6px; }
+.unit-toggle { min-width: 2.4em; }
+.small-btn { padding: 8px 14px; }

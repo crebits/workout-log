@@ -7,7 +7,7 @@ import { measureOf } from '../../workout/measure';
 import type { EntryExercise, Exercise, ISODate, Routine } from '../../types';
 import { useEntryDraft } from './useEntryDraft';
 import { ExerciseBlock } from './ExerciseBlock';
-import { ExercisePicker } from '../exercise/ExercisePicker';
+import { QuickAdd } from './QuickAdd';
 import { ExerciseForm } from '../exercise/ExerciseForm';
 
 export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }) {
@@ -75,7 +75,12 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
                 onEditExercise={() => setEditing(s.exercises.get(b.exerciseId) ?? null)} />
             ))}
             {editing && <ExerciseForm key={editing.id} initial={editing} onSaved={() => setEditing(null)} onCancel={() => setEditing(null)} />}
-            <ExercisePicker onPick={(ex) => setBlocks((bs) => [...bs, { exerciseId: ex.id, order: bs.length, sets: [{ isWarmup: false }] }])} />
+            <QuickAdd date={date} entries={s.entries} exercises={s.exercises} onAdd={(ex, sets) => setBlocks((bs) => {
+              // 같은 운동이 이미 있으면 그 운동에 세트를 이어 붙인다
+              const i = bs.findIndex((b) => b.exerciseId === ex.id);
+              if (i < 0) return [...bs, { exerciseId: ex.id, order: bs.length, sets }];
+              return bs.map((b, j) => (j === i ? { ...b, sets: [...b.sets, ...sets] } : b));
+            })} />
           </>)}
 
           <textarea aria-label="메모" placeholder="메모 (컨디션, 식단, 통증…)" rows={3} value={s.draft.memo}

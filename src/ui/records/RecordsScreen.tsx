@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { live } from '../../data/repo';
 import { computePRs, type PRs } from '../../workout/records';
+import { measureOf } from '../../workout/measure';
 import type { Exercise, ISODate } from '../../types';
 import { fmtNum, formatPace } from '../entry/format';
 import { ExerciseDetail } from './ExerciseDetail';
@@ -8,13 +9,16 @@ import { ExerciseDetail } from './ExerciseDetail';
 const md = (d: string) => d.slice(5).replace('-', '/');
 
 function PRLines({ ex, pr }: { ex: Exercise; pr: PRs }) {
+  const timed = measureOf(ex) === 'seconds';
   const items: [string, string | undefined, string | undefined][] =
     ex.type === 'weight' ? [
-      ['최고 무게', pr.maxWeight && `${fmtNum(pr.maxWeight.value)}kg × ${pr.maxWeight.reps}회`, pr.maxWeight?.date],
+      ['최고 무게', pr.maxWeight && `${fmtNum(pr.maxWeight.value)}kg × ${pr.maxWeight.reps}${timed ? 's' : '회'}`, pr.maxWeight?.date],
       ['최고 횟수', pr.maxReps && `${pr.maxReps.value}회`, pr.maxReps?.date],
+      ['최장 시간', timed && pr.longestDuration ? `${pr.longestDuration.value}s` : undefined, pr.longestDuration?.date],
       ['추정 1RM', pr.bestE1rm && `${fmtNum(Math.round(pr.bestE1rm.value * 10) / 10)}kg`, pr.bestE1rm?.date],
     ] : ex.type === 'bodyweight' ? [
       ['최고 횟수', pr.maxReps && `${pr.maxReps.value}회`, pr.maxReps?.date],
+      ['최장 시간', timed && pr.longestDuration ? `${pr.longestDuration.value}s` : undefined, pr.longestDuration?.date],
       ['최고 추가 무게', pr.maxAddedWeight && `+${fmtNum(pr.maxAddedWeight.value)}kg`, pr.maxAddedWeight?.date],
     ] : [
       ['최장 시간', pr.longestDuration && `${fmtNum(Math.round(pr.longestDuration.value / 60))}분`, pr.longestDuration?.date],

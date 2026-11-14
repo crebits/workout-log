@@ -11,6 +11,7 @@ export function ExerciseForm(p: { initial?: Exercise; initialName?: string; onSa
   const [name, setName] = useState(init?.name ?? p.initialName ?? '');
   const [type, setType] = useState<ExerciseType>(init?.type ?? 'weight');
   const [inc, setInc] = useState(String(init?.incrementKg ?? DEFAULT_INCREMENT_KG));
+  const [measure, setMeasure] = useState<'reps' | 'seconds'>(init?.measure ?? 'reps');
   const [primary, setPrimary] = useState<string[]>(init?.primaryMuscles ?? []);
   const [secondary, setSecondary] = useState<string[]>(init?.secondaryMuscles ?? []);
   const [note, setNote] = useState(init?.note ?? '');
@@ -23,7 +24,7 @@ export function ExerciseForm(p: { initial?: Exercise; initialName?: string; onSa
     const dup = await repo.findExerciseByName(name);
     if (dup && dup.id !== init?.id) return setError('같은 이름의 운동이 이미 있어요');
     const ex = await repo.saveExercise({
-      ...(init ?? {}), name, type, incrementKg: parseNum(inc) ?? DEFAULT_INCREMENT_KG,
+      ...(init ?? {}), name, type, incrementKg: parseNum(inc) ?? DEFAULT_INCREMENT_KG, measure: type === 'cardio' ? undefined : measure,
       primaryMuscles: primary, secondaryMuscles: secondary.filter((m) => !primary.includes(m)), note: note.trim(),
     });
     p.onSaved(ex);
@@ -44,6 +45,13 @@ export function ExerciseForm(p: { initial?: Exercise; initialName?: string; onSa
             {(Object.keys(TYPE_LABEL) as ExerciseType[]).map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
           </select>
         </label>
+        {type !== 'cardio' && (
+          <label className="stack">세는 방식
+            <select aria-label="세는 방식" value={measure} onChange={(e) => setMeasure(e.target.value as 'reps' | 'seconds')}>
+              <option value="reps">횟수</option><option value="seconds">시간(초)</option>
+            </select>
+          </label>
+        )}
         {type === 'weight' && (
           <label className="stack">증가 단위(kg)<input aria-label="증가 단위(kg)" inputMode="decimal" value={inc} onChange={(e) => setInc(e.target.value)} /></label>
         )}

@@ -52,7 +52,7 @@ export function RoutineEditor(p: { routine?: Routine; nextOrder: number; exercis
               <input aria-label={`${n} 목표 최소`} inputMode="numeric" value={it.min} style={{ width: '3em' }} onChange={(e) => setField(i, 'min', e.target.value)} />
               ~
               <input aria-label={`${n} 목표 최대`} inputMode="numeric" value={it.max} style={{ width: '3em' }} onChange={(e) => setField(i, 'max', e.target.value)} />
-              <span className="muted">회</span>
+              <span className="muted">{p.exercises.get(it.exerciseId)?.measure === 'seconds' ? 's' : '회'}</span>
               <button className="icon" aria-label={`${n} 위로`} disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
               <button className="icon" aria-label={`${n} 아래로`} disabled={i === items.length - 1} onClick={() => move(i, 1)}>↓</button>
               <button className="icon" aria-label={`${n} 빼기`} onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))}>×</button>

@@ -4,7 +4,7 @@ import { parseNum } from '../../lib/number';
 import { paceSecPerKm } from '../../workout/records';
 import { fmtNum, formatPace } from './format';
 
-type NumField = 'weightKg' | 'reps' | 'addedWeightKg' | 'durationMin' | 'distanceKm' | 'avgHeartRate' | 'maxHeartRate' | 'avgCadence';
+type NumField = 'weightKg' | 'reps' | 'durationSec' | 'addedWeightKg' | 'durationMin' | 'distanceKm' | 'avgHeartRate' | 'maxHeartRate' | 'avgCadence';
 
 function NumInput(p: { label: string; value: number | undefined; onChange(v: number | undefined): void; width?: string; integer?: boolean }) {
   const [text, setText] = useState(p.value === undefined ? '' : fmtNum(p.value));
@@ -25,6 +25,8 @@ export function SetRow(p: {
   /** 본 세트 번호(1부터). 워밍업이면 null */
   number: number | null;
   incrementKg: number;
+  /** 무게·맨몸 운동의 세는 방식 */
+  measure?: 'reps' | 'seconds';
   onChange(s: WorkoutSet): void;
   onRemove(): void;
 }) {
@@ -43,6 +45,13 @@ export function SetRow(p: {
     );
   };
   const pace = paceSecPerKm(set.durationSec, set.distanceKm);
+  const timed = p.measure === 'seconds';
+  const countField = timed
+    ? field('durationSec', '시간(초)', 's', { integer: true, width: '3.4em' })
+    : field('reps', '횟수', '회', { integer: true, width: '3.2em' });
+  const countButton = timed
+    ? <button className="chip" aria-label={`${name} +5s`} onClick={() => p.onChange({ ...set, durationSec: (set.durationSec ?? 0) + 5 })}>+5s</button>
+    : <button className="chip" aria-label={`${name} +1회`} onClick={() => p.onChange({ ...set, reps: (set.reps ?? 0) + 1 })}>+1</button>;
 
   return (
     <div className={`set-row ${set.isWarmup ? 'warmup' : ''}`}>
@@ -52,15 +61,15 @@ export function SetRow(p: {
       </button>
       {p.type === 'weight' && (<>
         {field('weightKg', '무게', 'kg')}
-        {field('reps', '횟수', '회', { integer: true, width: '3.2em' })}
+        {countField}
         <button className="chip" aria-label={`${name} +${fmtNum(p.incrementKg)}kg`}
           onClick={() => p.onChange({ ...set, weightKg: Math.round(((set.weightKg ?? 0) + p.incrementKg) * 1000) / 1000 })}>+{fmtNum(p.incrementKg)}</button>
-        <button className="chip" aria-label={`${name} +1회`} onClick={() => p.onChange({ ...set, reps: (set.reps ?? 0) + 1 })}>+1</button>
+        {countButton}
       </>)}
       {p.type === 'bodyweight' && (<>
-        {field('reps', '횟수', '회', { integer: true, width: '3.2em' })}
+        {countField}
         {field('addedWeightKg', '추가 무게', '+kg')}
-        <button className="chip" aria-label={`${name} +1회`} onClick={() => p.onChange({ ...set, reps: (set.reps ?? 0) + 1 })}>+1</button>
+        {countButton}
       </>)}
       {p.type === 'cardio' && (<div className="cardio">
         {field('durationMin', '시간(분)', '분')}
