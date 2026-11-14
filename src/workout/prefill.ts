@@ -1,6 +1,7 @@
 import type { Entry, EntryExercise, Exercise, ISODate, Routine, Settings, WorkoutSet } from '../types';
 import { compareISO } from '../lib/date';
 import { decideProgression, type Range } from '../core/progression';
+import { countOf, measureOf, withCount, type Measure } from './measure';
 
 export interface ExerciseHint { lastSets: WorkoutSet[] | null; lastDate: ISODate | null; ready: boolean; bodyweightReady: boolean }
 
@@ -29,19 +30,20 @@ export function buildPrefill(a: {
     if (!lastSets || lastSets.length === 0) return { exerciseId: item.exerciseId, order, sets: [{ isWarmup: false }] };
 
     const range: Range = { min: item.targetRepsMin, max: item.targetRepsMax };
+    const m = measureOf(ex);
     const warmups = lastSets.filter((s) => s.isWarmup);
     let working = lastSets.filter((s) => !s.isWarmup);
 
     // 올릴 차례는 같은 루틴의 지난번 기록일 때만 판단한다 (스펙 6.3)
     const sameRoutine = src!.routineId === a.routine.id;
     if (sameRoutine && ex?.type === 'weight' && working.length > 0) {
-      const res = decideProgression(working.map((s) => ({ load: s.weightKg ?? null, value: s.reps ?? 0 })), range, ex.incrementKg);
+      const res = decideProgression(working.map((s) => ({ load: s.weightKg ?? null, value: countOf(m, s) ?? 0 })), range, ex.incrementKg);
       hint.ready = res.ready;
       if (res.ready && !a.deload) {
-        working = working.map((s, i) => ({ ...s, weightKg: res.next[i].load ?? undefined, reps: res.next[i].value }));
+        working = working.map((s, i) => withCount(m, { ...s, weightKg: res.next[i].load ?? undefined }, res.next[i].value));
       }
     } else if (sameRoutine && ex?.type === 'bodyweight') {
-      hint.bodyweightReady = working.length > 0 && working.every((s) => (s.reps ?? 0) >= range.max);
+      hint.bodyweightReady = working.length > 0 && working.every((s) => (countOf(m, s) ?? 0) >= range.max);
     }
 
     if (a.deload && working.length > 0) {
@@ -58,9 +60,9 @@ export function buildPrefill(a: {
   return { exercises, hints };
 }
 
-export function defaultRangeFromSets(sets: WorkoutSet[], settings: Settings): { min: number; max: number } {
+export function defaultRangeFromSets(sets: WorkoutSet[], settings: Settings, measure: Measure = 'reps'): { min: number; max: number } {
   if (settings.defaultTargetRange) return { ...settings.defaultTargetRange };
-  const reps = sets.filter((s) => !s.isWarmup && s.reps !== undefined).map((s) => s.reps!);
+  const reps = sets.filter((s) => !s.isWarmup).map((s) => countOf(measure, s)).filter((v): v is number => v !== undefined);
   if (reps.length === 0) return { min: 8, max: 10 };
   const min = Math.min(...reps);
   return { min, max: min + 2 };

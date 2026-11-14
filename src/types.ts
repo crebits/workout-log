@@ -18,6 +18,8 @@ export interface Exercise extends BaseRecord {
   name: string;
   type: ExerciseType;
   incrementKg: number;
+  /** 무게·맨몸 운동을 횟수로 셀지 시간(초)으로 셀지. 없으면 횟수 */
+  measure?: 'reps' | 'seconds';
   primaryMuscles: string[];
   secondaryMuscles: string[];
   note: string;

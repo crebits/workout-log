@@ -3,6 +3,7 @@ import { repo } from '../../data/repo';
 import { dayTitle } from '../../lib/date';
 import { bestE1rmBefore } from '../../workout/records';
 import { defaultRangeFromSets } from '../../workout/prefill';
+import { measureOf } from '../../workout/measure';
 import type { EntryExercise, Exercise, ISODate, Routine } from '../../types';
 import { useEntryDraft } from './useEntryDraft';
 import { ExerciseBlock } from './ExerciseBlock';
@@ -32,7 +33,7 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
   const lightRatio = (b: EntryExercise): number | null => {
     const ex = s.exercises.get(b.exerciseId);
     if (routine?.intensity !== 'light' || !s.settings?.showLightRatio || ex?.type !== 'weight') return null;
-    const best = bestE1rmBefore(b.exerciseId, s.entries, date);
+    const best = bestE1rmBefore(ex, s.entries, date);
     const top = Math.max(0, ...b.sets.filter((x) => !x.isWarmup).map((x) => x.weightKg ?? 0));
     return best && top ? top / best : null;
   };
@@ -93,7 +94,7 @@ function RegisterPanel({ s, routine, onDone }: { s: ReturnType<typeof useEntryDr
   const [intensity, setIntensity] = useState<'heavy' | 'light' | ''>(routine?.intensity ?? '');
   const items = () => s.draft.exercises.map((b, order) => {
     const prev = routine?.items.find((i) => i.exerciseId === b.exerciseId);
-    const range = prev ? { min: prev.targetRepsMin, max: prev.targetRepsMax } : defaultRangeFromSets(b.sets, s.settings!);
+    const range = prev ? { min: prev.targetRepsMin, max: prev.targetRepsMax } : defaultRangeFromSets(b.sets, s.settings!, measureOf(s.exercises.get(b.exerciseId)));
     return { exerciseId: b.exerciseId, order, targetRepsMin: range.min, targetRepsMax: range.max };
   });
 

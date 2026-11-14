@@ -1,13 +1,15 @@
 import type { Entry, Exercise, ISODate, WorkoutSet } from '../types';
 import { compareISO } from '../lib/date';
 import { countsForRecords, e1rm, paceSecPerKm, workingSets } from './records';
+import { measureOf } from './measure';
 
-export type Metric = 'e1rm' | 'reps' | 'distance' | 'pace' | 'heartRate' | 'cadence';
+export type Metric = 'e1rm' | 'reps' | 'duration' | 'distance' | 'pace' | 'heartRate' | 'cadence';
 export interface Point { date: ISODate; value: number }
 
 const pick: Record<Metric, { get(s: WorkoutSet): number | null; lowerIsBetter?: boolean }> = {
   e1rm: { get: (s) => (s.weightKg && s.reps ? e1rm(s.weightKg, s.reps) : null) },
   reps: { get: (s) => s.reps ?? null },
+  duration: { get: (s) => s.durationSec ?? null },
   distance: { get: (s) => s.distanceKm ?? null },
   pace: { get: (s) => paceSecPerKm(s.durationSec, s.distanceKm), lowerIsBetter: true },
   heartRate: { get: (s) => s.avgHeartRate ?? null },
@@ -33,3 +35,9 @@ export const METRICS_FOR: Record<Exercise['type'], { metric: Metric; label: stri
     { metric: 'heartRate', label: '평균 심박' }, { metric: 'cadence', label: '케이던스' },
   ],
 };
+
+/** 운동별 그래프 항목. 시간(초) 운동은 최장 시간 */
+export function metricsFor(ex: Exercise): { metric: Metric; label: string }[] {
+  if (ex.type !== 'cardio' && measureOf(ex) === 'seconds') return [{ metric: 'duration', label: '최장 시간' }];
+  return METRICS_FOR[ex.type];
+}

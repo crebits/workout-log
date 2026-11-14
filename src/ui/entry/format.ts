@@ -1,4 +1,5 @@
 import type { Exercise, WorkoutSet } from '../../types';
+import { formatCount, measureOf } from '../../workout/measure';
 
 const fmtNum = (n: number) => String(Math.round(n * 100) / 100);
 
@@ -16,11 +17,12 @@ export function summarizeSets(ex: Exercise, sets: WorkoutSet[]): string {
     return [s.durationSec ? `${fmtNum(s.durationSec / 60)}분` : '', s.distanceKm ? `${fmtNum(s.distanceKm)}km` : ''].filter(Boolean).join(' ');
   }
   if (ex.type === 'bodyweight') {
-    return work.map((s) => `${s.reps ?? '-'}${s.addedWeightKg ? `(+${fmtNum(s.addedWeightKg)})` : ''}`).join(',') + '회';
+    const body = work.map((s) => `${formatCount(s)}${s.addedWeightKg ? `(+${fmtNum(s.addedWeightKg)})` : ''}`).join(',');
+    return measureOf(ex) === 'seconds' ? body : `${body}회`;
   }
   const weights = new Set(work.map((s) => s.weightKg));
-  if (weights.size === 1) return `${fmtNum(work[0].weightKg ?? 0)}kg × ${work.map((s) => s.reps ?? '-').join(',')}`;
-  return work.map((s) => `${fmtNum(s.weightKg ?? 0)}×${s.reps ?? '-'}`).join(', ');
+  if (weights.size === 1) return `${fmtNum(work[0].weightKg ?? 0)}kg × ${work.map(formatCount).join(',')}`;
+  return work.map((s) => `${fmtNum(s.weightKg ?? 0)}×${formatCount(s)}`).join(', ');
 }
 
 export { fmtNum };

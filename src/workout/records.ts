@@ -1,5 +1,6 @@
 import type { Entry, Exercise, ISODate, WorkoutSet } from '../types';
 import { compareISO } from '../lib/date';
+import { countOf, measureOf } from './measure';
 
 /** Epley. 1~12회만 계산한다. */
 export function e1rm(weightKg: number, reps: number): number | null {
@@ -34,17 +35,20 @@ export function computePRs(ex: Exercise, entries: Entry[]): PRs {
     if (!cur || better(key, value, cur.value)) pr[key] = reps === undefined ? { value, date } : { value, date, reps };
   };
   const sorted = entries.filter(countsForRecords).sort((a, b) => compareISO(a.date, b.date));
+  const m = measureOf(ex);
+  const countKey: PRKey = m === 'seconds' ? 'longestDuration' : 'maxReps';
   for (const e of sorted) {
     for (const s of workingSets(e, ex.id)) {
+      const count = countOf(m, s);
       if (ex.type === 'weight') {
         const curW = pr.maxWeight;
-        if (s.weightKg && (!curW || s.weightKg > curW.value || (s.weightKg === curW.value && (s.reps ?? 0) > (curW.reps ?? 0)))) {
-          pr.maxWeight = { value: s.weightKg, date: e.date, reps: s.reps ?? 0 };
+        if (s.weightKg && (!curW || s.weightKg > curW.value || (s.weightKg === curW.value && (count ?? 0) > (curW.reps ?? 0)))) {
+          pr.maxWeight = { value: s.weightKg, date: e.date, reps: count ?? 0 };
         }
-        consider('maxReps', s.reps, e.date);
-        consider('bestE1rm', s.weightKg && s.reps ? e1rm(s.weightKg, s.reps) : null, e.date);
+        consider(countKey, count, e.date);
+        if (m === 'reps') consider('bestE1rm', s.weightKg && s.reps ? e1rm(s.weightKg, s.reps) : null, e.date);
       } else if (ex.type === 'bodyweight') {
-        consider('maxReps', s.reps, e.date);
+        consider(countKey, count, e.date);
         consider('maxAddedWeight', s.addedWeightKg, e.date);
       } else {
         consider('longestDuration', s.durationSec, e.date);
@@ -64,7 +68,9 @@ export function newPRs(ex: Exercise, entry: Entry, entries: Entry[]): PRKey[] {
   return (Object.keys(cur) as PRKey[]).filter((k) => prev[k] && better(k, cur[k]!.value, prev[k]!.value));
 }
 
-export function bestE1rmBefore(exerciseId: string, entries: Entry[], date: ISODate): number | null {
+export function bestE1rmBefore(ex: Exercise, entries: Entry[], date: ISODate): number | null {
+  if (measureOf(ex) === 'seconds') return null;
+  const exerciseId = ex.id;
   let best: number | null = null;
   for (const e of entries) {
     if (!countsForRecords(e) || compareISO(e.date, date) >= 0) continue;

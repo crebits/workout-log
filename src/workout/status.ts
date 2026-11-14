@@ -49,7 +49,8 @@ export function computeStatus(routines: Routine[], entries: Entry[], until: ISOD
     const history: Attempt[][] = live
       .filter((e) => !e.isDeload && e.routineId === routine.id && compareISO(e.date, until) < 0)
       .sort((a, b) => compareISO(a.date, b.date))
-      .map((e) => workingSets(e, exerciseId).filter((s) => s.reps !== undefined).map((s) => ({ load: s.weightKg ?? null, value: s.reps! })))
+      // 횟수가 없고 시간만 있는 세트는 시간(초)을 값으로 쓴다
+      .map((e) => workingSets(e, exerciseId).filter((s) => (s.reps ?? s.durationSec) !== undefined).map((s) => ({ load: s.weightKg ?? null, value: (s.reps ?? s.durationSec)! })))
       .filter((h) => h.length > 0);
     if (isStalled(history, { min: item.targetRepsMin, max: item.targetRepsMax })) stalledCount++;
   }

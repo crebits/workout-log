@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { Entry, Exercise, Routine } from '../../types';
 import { compareISO } from '../../lib/date';
-import { chartSeries, METRICS_FOR, type Metric } from '../../workout/series';
+import { chartSeries, metricsFor, type Metric } from '../../workout/series';
 import { summarizeSets, formatPace, fmtNum } from '../entry/format';
 
 const INTENSITY: Record<string, string> = { heavy: '고중량', light: '저중량' };
 
 export function ExerciseDetail(p: { exercise: Exercise; entries: Entry[]; routines: Map<string, Routine>; onOpenDate(d: string): void; onBack(): void }) {
-  const metrics = METRICS_FOR[p.exercise.type];
+  const metrics = metricsFor(p.exercise);
   const [metric, setMetric] = useState<Metric>(metrics[0].metric);
   const data = useMemo(() => chartSeries(p.exercise, p.entries, metric), [p.exercise, p.entries, metric]);
   const rows = useMemo(

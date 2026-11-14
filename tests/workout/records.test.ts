@@ -75,6 +75,6 @@ test('bestE1rmBefore는 그 날짜 이전만', () => {
     entry('2026-11-01', { exercises: [block(bench.id, [w(80, 8)])] }),
     entry('2026-11-05', { exercises: [block(bench.id, [w(100, 8)])] }),
   ];
-  expect(bestE1rmBefore(bench.id, es, '2026-11-05')).toBeCloseTo(101.33, 2);
-  expect(bestE1rmBefore(bench.id, es, '2026-11-01')).toBeNull();
+  expect(bestE1rmBefore(bench, es, '2026-11-05')).toBeCloseTo(101.33, 2);
+  expect(bestE1rmBefore(bench, es, '2026-11-01')).toBeNull();
 });
