@@ -31,7 +31,9 @@ export function SettingsScreen() {
   const exercises = live.exercises({ includeDeleted: true });
   useEffect(() => {
     let alive = true;
-    void buildBackup().then((b) => { if (alive) setPrepared(JSON.stringify(b)); });
+    buildBackup()
+      .then((b) => { if (alive) setPrepared(JSON.stringify(b)); })
+      .catch(() => { if (alive) setPrepared(null); }); // 미리 만들기 실패 시 내보낼 때 새로 만든다
     return () => { alive = false; };
   }, [entries, routines, exercises, s]);
   if (!s) return <section className="screen" />;
