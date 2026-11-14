@@ -96,3 +96,13 @@ textarea { width: 100%; resize: vertical; }
 .picker li { padding: 10px; border-radius: 8px; cursor: pointer; }
 .picker li:active, .picker li:hover { background: var(--accent-soft); }
 .picker li.new { color: var(--accent); }
+
+.small { font-size: .8rem; }
+.routine-list { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; }
+.routine-row { display: flex; align-items: center; gap: 6px; background: var(--surface); border-radius: var(--radius); padding: 6px 8px; touch-action: manipulation; }
+.routine-row.rest { background: transparent; border: 1px dashed var(--line); }
+.routine-row .handle { font-size: 1.2rem; color: var(--muted); padding: 4px 6px; touch-action: none; cursor: grab; }
+.routine-row .no { width: 1.5em; color: var(--muted); font-size: .85rem; }
+.routine-row .name { font-weight: 600; }
+.item-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.item-name { flex: 1; min-width: 6em; font-weight: 600; }
