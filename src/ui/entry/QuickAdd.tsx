@@ -48,7 +48,8 @@ export function QuickAdd(p: { date: ISODate; entries: Entry[]; exercises: Map<st
   const valid = ex.type === 'cardio' ? true : isValidSetCount(parseNum(text.setCount));
   const input = (f: Field, label: string, unit: string, width = '3.6em') => (
     <label className="field">
-      <input aria-label={label} inputMode="decimal" value={text[f]} style={{ width }} onChange={(e) => setText((t) => ({ ...t, [f]: e.target.value }))} />
+      <input aria-label={label} placeholder={label.replace(/\(.*\)/, '')} inputMode="decimal" value={text[f]} style={{ width }}
+        onChange={(e) => setText((t) => ({ ...t, [f]: e.target.value }))} />
       <span className="unit">{unit}</span>
     </label>
   );
