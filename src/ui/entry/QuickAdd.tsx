@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DEFAULT_RANGE, repo } from '../../data/repo';
 import { parseNum } from '../../lib/number';
 import type { Entry, Exercise, ISODate, WorkoutSet } from '../../types';
@@ -39,14 +39,7 @@ export function QuickAdd(p: {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ex?.id]);
-  // 단위만 바뀌면 횟수/시간 칸만 다시 채운다 (입력한 무게·세트 수는 유지)
-  const prevMeasure = useRef(measure);
-  useEffect(() => {
-    if (prevMeasure.current === measure) return;
-    prevMeasure.current = measure;
-    setText((t) => ({ ...t, count: toText(defaults?.count) }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [measure]);
+
 
   const last = useMemo(() => {
     if (!ex) return null;
@@ -78,6 +71,9 @@ export function QuickAdd(p: {
     const next = measure === 'seconds' ? 'reps' : 'seconds';
     try {
       const changed = await repo.changeMeasure(ex.id, next);
+      // 횟수/시간 칸만 새 단위의 지난 값으로 다시 채운다 (입력한 무게·세트 수는 유지)
+      const count = quickDefaults({ ...ex, measure: next }, p.entries, p.date).count;
+      setText((t) => ({ ...t, count: toText(count) }));
       const r = DEFAULT_RANGE[next];
       setNotice(changed > 0
         ? { tone: 'info', text: `루틴 ${changed}개의 목표 범위를 ${r.min}~${r.max}${unitLabel(next)}로 바꿨어요. 루틴 화면에서 고칠 수 있어요.` }

@@ -112,7 +112,7 @@ describe('리뷰 미뤄 둔 것', () => {
     await within(g2).findByLabelText('시간(초)');
     expect(within(g2).getByLabelText('무게')).toHaveValue('90');
     expect(within(g2).getByLabelText('세트 수')).toHaveValue('5');
-    expect(within(g2).getByLabelText('시간(초)')).toHaveValue('');
+    await waitFor(() => expect(within(g2).getByLabelText('시간(초)')).toHaveValue(''));
   });
   test('숫자가 아닌 입력이나 소수 횟수면 추가 비활성', async () => {
     const g = await pick('벤치프레스');
