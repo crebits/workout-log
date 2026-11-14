@@ -4,6 +4,7 @@ import { CalendarScreen } from './calendar/CalendarScreen';
 import { EntryModal } from './entry/EntryModal';
 import { RoutinesScreen } from './routines/RoutinesScreen';
 import { RecordsScreen } from './records/RecordsScreen';
+import { SearchScreen } from './search/SearchScreen';
 import type { ISODate } from '../types';
 import './styles.css';
 
@@ -16,6 +17,7 @@ export default function App() {
         {tab === 'calendar' && <CalendarScreen onOpenDate={setOpenDate} />}
         {tab === 'routines' && <RoutinesScreen />}
         {tab === 'records' && <RecordsScreen onOpenDate={setOpenDate} />}
+        {tab === 'search' && <SearchScreen onOpenDate={setOpenDate} />}
       </main>
       <TabBar tab={tab} onChange={setTab} />
       {openDate && <EntryModal key={openDate} date={openDate} onClose={() => setOpenDate(null)} />}

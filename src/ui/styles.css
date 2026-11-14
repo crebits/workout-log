@@ -121,3 +121,5 @@ textarea { width: 100%; resize: vertical; }
 .history button { width: 100%; text-align: left; background: var(--surface); border-radius: var(--radius); padding: 10px; display: grid; grid-template-columns: 3.2em 1fr; gap: 2px 8px; }
 .history .date { font-weight: 700; grid-row: span 2; }
 .history .meta { display: flex; gap: 6px; font-size: .78rem; color: var(--muted); align-items: center; flex-wrap: wrap; }
+.search-input { width: 100%; margin: 10px 0 4px; font-size: 1rem; }
+.search .history .date { grid-row: auto; font-size: .82rem; }
