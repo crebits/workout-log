@@ -95,3 +95,11 @@ test('일지의 routineId도 매핑된다', async () => {
   await applyImport(await planImport(file({ routines: [theirs], entries: [entry('2026-11-03', { routineId: theirs.id })] })), 'keep');
   expect((await repo.getEntry('2026-11-03'))!.routineId).toBe(mine.id);
 });
+
+test('가져온 새 루틴은 기존 루틴 뒤에 순서대로 붙는다', async () => {
+  await repo.saveRoutine({ name: 'A', kind: 'workout', intensity: null, order: 0, items: [] });
+  await repo.saveRoutine({ name: 'B', kind: 'workout', intensity: null, order: 1, items: [] });
+  const f = file({ routines: [routine({ name: 'Y', order: 1 }), routine({ name: 'X', order: 0 })] });
+  await applyImport(await planImport(f), 'keep');
+  expect((await repo.listRoutines()).map((r) => r.name)).toEqual(['A', 'B', 'X', 'Y']);
+});

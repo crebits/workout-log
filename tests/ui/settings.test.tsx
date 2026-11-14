@@ -83,3 +83,22 @@ test('공유 실패면 lastBackupAt 그대로, 안내', async () => {
   expect(await screen.findByText(/백업 파일을 저장하지 못했어요/)).toBeInTheDocument();
   expect((await repo.getSettings()).lastBackupAt).toBeNull();
 });
+
+test('가져오기 실행이 실패하면 안내하고 다시 누를 수 있다', async () => {
+  const backup = { schemaVersion: 1, exportedAt: 1, exercises: [], routines: [], settings: {},
+    entries: [{ id: 'y', createdAt: 1, updatedAt: 1, date: '2026-11-02', routineId: null, isDeload: false, memo: 'new', exercises: [] }] };
+  vi.spyOn(files, 'readFile').mockResolvedValue(JSON.stringify(backup));
+  const backupMod = await import('../../src/data/backup');
+  vi.spyOn(backupMod, 'applyImport').mockRejectedValueOnce(new Error('x'));
+  render(<SettingsScreen />);
+  fireEvent.change(await screen.findByLabelText('백업 파일 선택'), { target: { files: [new File(['x'], 'b.json')] } });
+  fireEvent.click(await screen.findByRole('button', { name: '가져오기 실행' }));
+  expect(await screen.findByText(/가져오기에 실패했어요/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '가져오기 실행' })).toBeEnabled();
+});
+
+test('기본 목표 범위가 비어 있을 때 최대부터 입력해도 저장', async () => {
+  render(<SettingsScreen />);
+  fireEvent.change(await screen.findByLabelText('기본 목표 최대'), { target: { value: '10' } });
+  await waitFor(async () => expect((await repo.getSettings()).defaultTargetRange).toEqual({ min: 8, max: 10 }));
+});

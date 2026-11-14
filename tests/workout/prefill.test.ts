@@ -90,3 +90,9 @@ test('defaultRange: 설정값이 있으면 그것', () => {
 test('defaultRange: 본 세트가 없으면 8~10', () => {
   expect(defaultRangeFromSets([], settings())).toEqual({ min: 8, max: 10 });
 });
+
+test('디로드 무게 감소 0이면 반올림하지 않는다 (61kg 그대로)', () => {
+  const es = [entry('2026-11-10', { routineId: heavy.id, exercises: [block(bench.id, [w(61, 7), w(61, 7)])] })];
+  const r = run(es, heavy, '2026-11-20', true, settings({ deloadWeightReduction: 0 }));
+  expect(r.exercises[0].sets).toEqual([w(61, 7)]);
+});

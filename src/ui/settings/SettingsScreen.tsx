@@ -91,7 +91,7 @@ export function SettingsScreen() {
           <NumSetting label="기본 목표 최소" value={range?.min}
             onChange={(v) => save({ defaultTargetRange: v === undefined ? null : { min: v, max: Math.max(v, range?.max ?? v + 2) } })} />
           <NumSetting label="기본 목표 최대" value={range?.max}
-            onChange={(v) => save({ defaultTargetRange: v === undefined || !range ? null : { min: Math.min(range.min, v), max: v } })} />
+            onChange={(v) => save({ defaultTargetRange: v === undefined ? null : { min: Math.max(1, Math.min(range?.min ?? v - 2, v)), max: v } })} />
         </div>
         <label className="setting">
           <span>저중량 날 추정 1RM 비율 표시</span>

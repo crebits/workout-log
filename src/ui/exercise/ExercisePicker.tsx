@@ -37,8 +37,8 @@ export function ExercisePicker({ onPick }: { onPick(ex: Exercise): void }) {
       <input aria-label="운동 추가" placeholder="+ 운동 추가 (이름 입력)" value={q} onChange={(e) => setQ(e.target.value)}
         onKeyDown={async (e) => {
           if (e.key !== 'Enter' || !query) return;
-          // 목록이 아직 안 떴어도 같은 이름이 있으면 그것을 고른다
-          const found = (await repo.findExerciseByName(q)) ?? matches[0];
+          // Enter는 정확히 같은 이름만 고른다. 일부만 같으면 새 운동으로 (목록에서 눌러 고를 수 있음)
+          const found = await repo.findExerciseByName(q);
           if (found) pick(found); else setCreating(q.trim());
         }} />
       {query && (

@@ -52,7 +52,8 @@ export function buildPrefill(a: {
       const keep = Math.max(1, Math.ceil(working.length * a.settings.deloadSetRatio));
       const inc = ex?.incrementKg || 2.5;
       working = working.slice(0, keep).map((s) =>
-        s.weightKg === undefined ? s : { ...s, weightKg: roundTo(s.weightKg * (1 - a.settings.deloadWeightReduction), inc) },
+        // 무게 감소가 0이면 그대로 둔다 (증가 단위로 반올림하면 61kg이 60kg이 되므로)
+        s.weightKg === undefined || a.settings.deloadWeightReduction === 0 ? s : { ...s, weightKg: roundTo(s.weightKg * (1 - a.settings.deloadWeightReduction), inc) },
       );
     }
     // 원래 순서 유지: 워밍업이 앞에 있던 대로

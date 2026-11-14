@@ -190,3 +190,39 @@ test('시간 운동으로 바꿔도 옛 횟수 세트는 횟수 칸으로 보인
   open('2026-11-10');
   expect(await screen.findByLabelText('1세트 횟수')).toHaveValue('7');
 });
+
+describe('1차 미뤄 둔 것', () => {
+  test('디로드를 켜면 ⬆ 무게 올릴 차례를 숨긴다', async () => {
+    await repo.saveEntry({ date: '2026-11-12', routineId: heavy.id, isDeload: false, memo: '',
+      exercises: [{ exerciseId: bench.id, order: 0, sets: [{ isWarmup: false, weightKg: 80, reps: 8 }] }] });
+    open('2026-11-14');
+    expect(await screen.findByText('⬆ 무게 올릴 차례')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /디로드/ }));
+    await waitFor(() => expect(screen.queryByText('⬆ 무게 올릴 차례')).toBeNull());
+  });
+
+  test('루틴 없이 추가한 운동에도 지난번이 보인다', async () => {
+    open('2026-11-20');
+    fireEvent.change(await screen.findByLabelText('루틴'), { target: { value: '' } });
+    fireEvent.change(await screen.findByLabelText('운동 추가'), { target: { value: '벤치프레스' } });
+    fireEvent.click(await screen.findByRole('option', { name: '벤치프레스' }));
+    fireEvent.click(within(await screen.findByRole('group', { name: '벤치프레스 추가' })).getByRole('button', { name: '추가' }));
+    expect(await screen.findByText(/지난번: 80kg × 7 \(11\/10\)/)).toBeInTheDocument();
+  });
+
+  test('휴식 날에는 디로드 표시를 저장하지 않는다', async () => {
+    await repo.saveEntry({ date: '2026-11-15', routineId: heavy.id, isDeload: true, memo: '',
+      exercises: [{ exerciseId: bench.id, order: 0, sets: [{ isWarmup: false, weightKg: 60, reps: 7 }] }] });
+    open('2026-11-16'); // 다음 차례: 휴식, 디로드 진행 중
+    fireEvent.click(await screen.findByRole('button', { name: '그대로 완료' }));
+    await waitFor(async () => expect((await repo.getEntry('2026-11-16'))?.routineId).not.toBeNull());
+    expect((await repo.getEntry('2026-11-16'))?.isDeload).toBe(false);
+  });
+
+  test('횟수 칸은 정수만: "8.5" → 8', async () => {
+    open();
+    fireEvent.change(await screen.findByLabelText('1세트 횟수'), { target: { value: '8.5' } });
+    expect(screen.getByLabelText('1세트 횟수')).toHaveValue('8');
+    await waitFor(async () => expect((await repo.getEntry('2026-11-12'))?.exercises[0].sets[1].reps).toBe(8));
+  });
+});

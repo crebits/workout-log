@@ -52,3 +52,13 @@ test('isValidSetCount', () => {
   for (const v of [0, 21, 2.5, undefined, -1]) expect(isValidSetCount(v)).toBe(false);
   for (const v of [1, 3, 20]) expect(isValidSetCount(v)).toBe(true);
 });
+
+import { lastHint } from '../../src/workout/quickAdd';
+test('lastHint: 루틴과 상관없이 가장 최근 기록(디로드 제외)', () => {
+  const es = [
+    entry('2026-11-01', { exercises: [block(bench.id, [w(70, 10)])] }),
+    entry('2026-11-05', { isDeload: true, exercises: [block(bench.id, [w(50, 8)])] }),
+  ];
+  expect(lastHint(bench, es, '2026-11-10')).toEqual({ lastSets: [w(70, 10)], lastDate: '2026-11-01', ready: false, bodyweightReady: false });
+  expect(lastHint(bench, [], '2026-11-10')).toBeUndefined();
+});

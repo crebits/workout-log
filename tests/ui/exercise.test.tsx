@@ -79,3 +79,15 @@ test('ExerciseForm: 운동 삭제', async () => {
   fireEvent.click(screen.getByRole('button', { name: '운동 삭제' }));
   await waitFor(async () => expect((await repo.getExercise(a.id))?.deletedAt).toBeDefined());
 });
+
+test('Enter는 정확히 같은 이름만 고르고, 일부만 같으면 새 운동 폼', async () => {
+  await mk('벤치프레스');
+  const onPick = vi.fn();
+  render(<ExercisePicker onPick={onPick} />);
+  const input = screen.getByLabelText('운동 추가');
+  fireEvent.change(input, { target: { value: '프레스' } });
+  await screen.findByRole('option', { name: '벤치프레스' });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(await screen.findByRole('group', { name: '운동 정보' })).toBeInTheDocument();
+  expect(onPick).not.toHaveBeenCalled();
+});

@@ -3,6 +3,8 @@ import { live, repo, type EntryDraft } from '../../data/repo';
 import { computeStatus, type AppStatus } from '../../workout/status';
 import { buildPrefill, type ExerciseHint } from '../../workout/prefill';
 import { newPRs, type PRKey } from '../../workout/records';
+import { lastHint } from '../../workout/quickAdd';
+import { onPageHide } from '../../platform/lifecycle';
 import type { Entry, Exercise, ISODate, Routine, Settings } from '../../types';
 
 const SAVE_DELAY_MS = 300;
@@ -36,6 +38,8 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
   const settingsQ = live.settings();
   const loaded = routinesQ !== undefined && exercisesQ !== undefined && entriesQ !== undefined && settingsQ !== undefined;
 
+  const routinesRef = useRef<Routine[]>([]);
+  routinesRef.current = routinesQ ?? [];
   const exercises = useMemo(() => new Map((exercisesQ ?? []).map((e) => [e.id, e])), [exercisesQ]);
   const [draft, setDraft] = useState<EntryDraft>({ date, routineId: null, isDeload: false, memo: '', exercises: [] });
   const [dirty, setDirty] = useState(false);
@@ -84,8 +88,9 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
     if (!pending.current) return true;
     pending.current = false;
     const d = draftRef.current;
-    // 확정 전에는 미리 채운 루틴·운동을 저장하지 않는다 (메모만)
-    const toSave = dirtyRef.current ? d : { ...d, routineId: null, isDeload: false, exercises: [] };
+    const isRest = routinesRef.current.find((r) => r.id === d.routineId)?.kind === 'rest';
+    // 확정 전에는 미리 채운 루틴·운동을 저장하지 않는다 (메모만). 휴식 날은 디로드 표시를 남기지 않는다
+    const toSave = dirtyRef.current ? (isRest ? { ...d, isDeload: false } : d) : { ...d, routineId: null, isDeload: false, exercises: [] };
     try {
       await repo.saveEntry(toSave);
       setSaveError(false);
@@ -104,9 +109,8 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
   }, [flush]);
 
   useEffect(() => {
-    const onHide = () => { if (document.visibilityState === 'hidden') void flush(); };
-    document.addEventListener('visibilitychange', onHide);
-    return () => { document.removeEventListener('visibilitychange', onHide); void flush(); };
+    const off = onPageHide(() => void flush());
+    return () => { off(); void flush(); };
   }, [flush]);
 
   const update: EntryDraftState['update'] = useCallback((fn, opts) => {
@@ -146,7 +150,17 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
     void flush();
   }, [flush]);
 
-  const hints = useMemo(() => prefillFor(draft.routineId, false).hints, [prefillFor, draft.routineId]);
+  const hints = useMemo(() => {
+    const h: Record<string, ExerciseHint> = { ...prefillFor(draft.routineId, false).hints };
+    // 루틴에 없는 운동(직접 추가)도 지난번 기록을 보여준다
+    for (const b of draft.exercises) {
+      const ex = exercises.get(b.exerciseId);
+      if (!h[b.exerciseId] && ex && entriesQ) { const lh = lastHint(ex, entriesQ, date); if (lh) h[b.exerciseId] = lh; }
+    }
+    // 디로드 중에는 올릴 차례를 보여주지 않는다
+    if (draft.isDeload) for (const k of Object.keys(h)) h[k] = { ...h[k], ready: false, bodyweightReady: false };
+    return h;
+  }, [prefillFor, draft.routineId, draft.exercises, draft.isDeload, exercises, entriesQ, date]);
 
   const trophies = useMemo(() => {
     const out: Record<string, PRKey[]> = {};

@@ -16,7 +16,12 @@ function NumInput(p: { label: string; value: number | undefined; onChange(v: num
   }, [p.value]);
   return (
     <input aria-label={p.label} inputMode={p.integer ? 'numeric' : 'decimal'} value={text} style={{ width: p.width ?? '4.2em' }}
-      onChange={(e) => { setText(e.target.value); p.onChange(parseNum(e.target.value)); }} />
+      onChange={(e) => {
+        // 정수 칸(횟수·심박 등)은 소수점 뒤를 버리고 숫자만 받는다
+        const v = p.integer ? e.target.value.replace(/[.,].*$/, '').replace(/\D/g, '') : e.target.value;
+        setText(v);
+        p.onChange(parseNum(v));
+      }} />
   );
 }
 

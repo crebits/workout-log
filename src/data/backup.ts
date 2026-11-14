@@ -103,11 +103,14 @@ export async function applyImport(plan: ImportPlan, onConflict: 'keep' | 'replac
       const cur = await db.exercises.get(e.id);
       if (!cur || e.updatedAt > cur.updatedAt) await db.exercises.put(e);
     }
-    for (const r of incoming.routines) {
+    // 새로 들어오는 루틴은 기존 루틴 뒤에 백업 순서대로 붙인다 (순서 번호가 겹치지 않게)
+    let nextOrder = Math.max(-1, ...(await db.routines.toArray()).filter((r) => !r.deletedAt).map((r) => r.order)) + 1;
+    for (const r of [...incoming.routines].sort((a, b) => a.order - b.order)) {
       if ((routineIdMap[r.id] ?? r.id) !== r.id) continue;
       const cur = await db.routines.get(r.id);
       const mapped = { ...r, items: r.items.map((i) => ({ ...i, exerciseId: exId(i.exerciseId) })) };
-      if (!cur || r.updatedAt > cur.updatedAt) await db.routines.put(mapped);
+      if (!cur) await db.routines.put(r.deletedAt ? mapped : { ...mapped, order: nextOrder++ });
+      else if (r.updatedAt > cur.updatedAt) await db.routines.put(mapped);
     }
     for (const e of incoming.entries.filter((x) => !x.deletedAt)) {
       const mapped: Entry = {

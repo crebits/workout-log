@@ -1,6 +1,7 @@
 import type { Entry, Exercise, ISODate, WorkoutSet } from '../types';
 import { compareISO } from '../lib/date';
 import { countsForRecords, workingSets } from './records';
+import type { ExerciseHint } from './prefill';
 import { countOf, measureOf, withCount } from './measure';
 
 /** 한 줄 추가 칸의 값. weightKg는 맨몸 운동에선 추가 무게 */
@@ -45,4 +46,14 @@ export function buildQuickSets(ex: Exercise, v: QuickValues): WorkoutSet[] {
   if (v.weightKg !== undefined) base[ex.type === 'weight' ? 'weightKg' : 'addedWeightKg'] = v.weightKg;
   const one = v.count === undefined ? base : withCount(measureOf(ex), base, v.count);
   return Array.from({ length: v.setCount }, () => ({ ...one }));
+}
+
+/** 루틴과 상관없이 그 운동의 가장 최근 기록(디로드 제외). 지난번 표시용 */
+export function lastHint(ex: Exercise, entries: Entry[], date: ISODate): ExerciseHint | undefined {
+  const last = entries
+    .filter((e) => countsForRecords(e) && compareISO(e.date, date) < 0 && e.exercises.some((b) => b.exerciseId === ex.id))
+    .sort((a, b) => compareISO(b.date, a.date))[0];
+  if (!last) return undefined;
+  const sets = last.exercises.filter((b) => b.exerciseId === ex.id).flatMap((b) => b.sets).map((s) => ({ ...s }));
+  return { lastSets: sets, lastDate: last.date, ready: false, bodyweightReady: false };
 }
