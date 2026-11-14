@@ -1,7 +1,7 @@
 import type { Entry, EntryExercise, Exercise, ISODate, Routine, Settings, WorkoutSet } from '../types';
 import { compareISO } from '../lib/date';
 import { decideProgression, type Range } from '../core/progression';
-import { countOf, measureOf, withCount, type Measure } from './measure';
+import { countOf, measureOf, toMeasure, withCount, type Measure } from './measure';
 
 export interface ExerciseHint { lastSets: WorkoutSet[] | null; lastDate: ISODate | null; ready: boolean; bodyweightReady: boolean }
 
@@ -24,7 +24,9 @@ export function buildPrefill(a: {
   const exercises = items.map((item, order): EntryExercise => {
     const ex = a.exercises.get(item.exerciseId);
     const src = findSource(candidates, a.routine.id, item.exerciseId);
-    const lastSets = src ? src.exercises.filter((b) => b.exerciseId === item.exerciseId).flatMap((b) => b.sets).map((s) => ({ ...s })) : null;
+    // 단위를 바꾼 운동이면 옛 세트의 다른 단위 값은 비우고 가져온다
+    const lastSets = src ? src.exercises.filter((b) => b.exerciseId === item.exerciseId).flatMap((b) => b.sets)
+      .map((s) => (ex && ex.type !== 'cardio' ? toMeasure(measureOf(ex), s) : { ...s })) : null;
     const hint: ExerciseHint = { lastSets, lastDate: src?.date ?? null, ready: false, bodyweightReady: false };
     hints[item.exerciseId] = hint;
     if (!lastSets || lastSets.length === 0) return { exerciseId: item.exerciseId, order, sets: [{ isWarmup: false }] };

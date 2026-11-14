@@ -42,3 +42,13 @@ test('디로드 상태 전달', () => {
   const es = [entry('2026-11-10', { routineId: A.id, isDeload: true })];
   expect(computeStatus(routines, es, '2026-11-11', settings()).deload.active).toBe(true);
 });
+
+test('정체: 시간 운동은 초만 보고, 옛 횟수 세트는 빼고 판단', () => {
+  const carry = ex({ name: 'carry', measure: 'seconds' });
+  const R2 = routine({ name: 'C', order: 0, items: [{ exerciseId: carry.id, order: 0, targetRepsMin: 30, targetRepsMax: 60 }] });
+  const reps = (d: string) => entry(d, { routineId: R2.id, exercises: [block(carry.id, [w(20, 8)])] });
+  const secs = (d: string) => entry(d, { routineId: R2.id, exercises: [block(carry.id, [{ isWarmup: false, weightKg: 20, durationSec: 45 }])] });
+  const es = [reps('2026-11-01'), reps('2026-11-02'), secs('2026-11-03')];
+  const s = computeStatus([R2], es, '2026-11-04', settings(), new Map([[carry.id, carry]]));
+  expect(s.stalledCount).toBe(0);
+});

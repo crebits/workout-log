@@ -26,9 +26,8 @@ test('최근 사용 순으로 정렬', async () => {
   await repo.saveEntry({ date: '2026-11-10', routineId: null, isDeload: false, memo: '', exercises: [{ exerciseId: b.id, order: 0, sets: [] }] });
   render(<ExercisePicker onPick={() => {}} />);
   fireEvent.change(screen.getByLabelText('운동 추가'), { target: { value: '덤벨' } });
-  await screen.findByRole('option', { name: '인클라인 덤벨' });
-  const names = screen.getAllByRole('option').map((o) => o.textContent);
-  expect(names.slice(0, 2)).toEqual(['인클라인 덤벨', '덤벨 프레스']);
+  // 기록 목록이 늦게 로드될 수 있으므로 정렬이 맞춰질 때까지 기다린다
+  await waitFor(() => expect(screen.getAllByRole('option').map((o) => o.textContent).slice(0, 2)).toEqual(['인클라인 덤벨', '덤벨 프레스']));
 });
 
 test('삭제된 운동은 뜨지 않는다', async () => {

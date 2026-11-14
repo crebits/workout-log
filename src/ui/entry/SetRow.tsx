@@ -3,6 +3,7 @@ import type { ExerciseType, WorkoutSet } from '../../types';
 import { parseNum } from '../../lib/number';
 import { paceSecPerKm } from '../../workout/records';
 import { fmtNum, formatPace } from './format';
+import { setMeasure } from '../../workout/measure';
 
 type NumField = 'weightKg' | 'reps' | 'durationSec' | 'addedWeightKg' | 'durationMin' | 'distanceKm' | 'avgHeartRate' | 'maxHeartRate' | 'avgCadence';
 
@@ -45,7 +46,8 @@ export function SetRow(p: {
     );
   };
   const pace = paceSecPerKm(set.durationSec, set.distanceKm);
-  const timed = p.measure === 'seconds';
+  // 세트가 가진 값의 단위로 보여준다 (단위를 바꾼 운동의 옛 세트도 그대로 보이게)
+  const timed = setMeasure(set, p.measure ?? 'reps') === 'seconds';
   const countField = timed
     ? field('durationSec', '시간(초)', 's', { integer: true, width: '3.4em' })
     : field('reps', '횟수', '회', { integer: true, width: '3.2em' });

@@ -4,6 +4,8 @@ import { walkRotation } from '../core/rotation';
 import { deloadState, type DeloadState } from '../core/deload';
 import { isStalled, type Attempt } from '../core/progression';
 import { workingSets } from './records';
+import { countOf, measureOf } from './measure';
+import type { Exercise } from '../types';
 
 export interface AppStatus {
   nextRoutineId: string | null;
@@ -19,7 +21,7 @@ export function activeRoutines(routines: Routine[]): Routine[] {
   return routines.filter((r) => !r.deletedAt).sort((a, b) => a.order - b.order);
 }
 
-export function computeStatus(routines: Routine[], entries: Entry[], until: ISODate, settings: Settings): AppStatus {
+export function computeStatus(routines: Routine[], entries: Entry[], until: ISODate, settings: Settings, exercises?: Map<string, Exercise>): AppStatus {
   const list = activeRoutines(routines);
   const n = list.length;
   const live = entries.filter((e) => !e.deletedAt);
@@ -45,12 +47,16 @@ export function computeStatus(routines: Routine[], entries: Entry[], until: ISOD
   let stalledCount = 0;
   for (const { routine, exerciseId } of pairs.values()) {
     const item = routine.items.find((i) => i.exerciseId === exerciseId);
-    if (!item) continue;
+    const ex = exercises?.get(exerciseId);
+    if (!item || ex?.type === 'cardio') continue;
+    const m = measureOf(ex);
     const history: Attempt[][] = live
       .filter((e) => !e.isDeload && e.routineId === routine.id && compareISO(e.date, until) < 0)
       .sort((a, b) => compareISO(a.date, b.date))
-      // 횟수가 없고 시간만 있는 세트는 시간(초)을 값으로 쓴다
-      .map((e) => workingSets(e, exerciseId).filter((s) => (s.reps ?? s.durationSec) !== undefined).map((s) => ({ load: s.weightKg ?? null, value: (s.reps ?? s.durationSec)! })))
+      // 운동의 현재 단위 값만 본다 (옛 다른 단위 세트·유산소 시간은 빠진다)
+      .map((e) => workingSets(e, exerciseId)
+        .map((s) => ({ load: s.weightKg ?? null, value: countOf(m, s) }))
+        .filter((a): a is { load: number | null; value: number } => a.value !== undefined))
       .filter((h) => h.length > 0);
     if (isStalled(history, { min: item.targetRepsMin, max: item.targetRepsMax })) stalledCount++;
   }

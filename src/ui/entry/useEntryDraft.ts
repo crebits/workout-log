@@ -50,8 +50,8 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
   const pending = useRef(false);
 
   const status = useMemo(
-    () => (loaded ? computeStatus(routinesQ!, entriesQ!, date, settingsQ!) : null),
-    [loaded, routinesQ, entriesQ, date, settingsQ],
+    () => (loaded ? computeStatus(routinesQ!, entriesQ!, date, settingsQ!, exercises) : null),
+    [loaded, routinesQ, entriesQ, date, settingsQ, exercises],
   );
 
   const prefillFor = useCallback(

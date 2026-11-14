@@ -69,3 +69,25 @@ test('series duration', () => {
   expect(metricsFor(plank)).toEqual([{ metric: 'duration', label: '최장 시간' }]);
   expect(metricsFor(ex({ name: 'b' }))[0].metric).toBe('e1rm');
 });
+
+describe('리뷰 수정: 단위 전환', () => {
+  test('withCount는 다른 단위 필드를 지운다', () => {
+    const s = withCount('seconds', { isWarmup: false, reps: 8 }, 60);
+    expect(s.reps).toBeUndefined();
+    expect(s.durationSec).toBe(60);
+  });
+  test('prefill: 시간 운동으로 바꾼 뒤 옛 횟수 세트를 가져오면 횟수를 비운다', () => {
+    const r = routine({ name: 'r', items: [{ exerciseId: carry.id, order: 0, targetRepsMin: 30, targetRepsMax: 60 }] });
+    const es = [entry('2026-11-01', { routineId: r.id, exercises: [block(carry.id, [{ isWarmup: false, weightKg: 20, reps: 8 }])] })];
+    const res = buildPrefill({ routine: r, exercises: new Map([[carry.id, carry]]), entries: es, date: '2026-11-05', deload: false, settings: settings() });
+    expect(res.exercises[0].sets[0].reps).toBeUndefined();
+    expect(res.exercises[0].sets[0].weightKg).toBe(20);
+    expect(res.hints[carry.id].ready).toBe(false);
+  });
+  test('맨몸 요약: 세트마다 자기 단위', () => {
+    const pushup = ex({ name: '푸시업', type: 'bodyweight' });
+    expect(summarizeSets(pushup, [{ isWarmup: false, reps: 12 }, { isWarmup: false, reps: 10 }])).toBe('12,10회');
+    expect(summarizeSets(pushup, [t(60), t(60)])).toBe('60s,60s');
+    expect(summarizeSets(plank, [{ isWarmup: false, reps: 8 }, t(60)])).toBe('8회,60s');
+  });
+});

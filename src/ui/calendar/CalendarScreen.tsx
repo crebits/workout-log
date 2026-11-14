@@ -15,11 +15,12 @@ export function CalendarScreen({ onOpenDate, today = todayISO() }: { onOpenDate(
   const exercises = live.exercises({ includeDeleted: true });
   const settings = live.settings() ?? { ...DEFAULT_SETTINGS, updatedAt: 0 };
 
+  const exMap = useMemo(() => new Map((exercises ?? []).map((e) => [e.id, e])), [exercises]);
   const byDate = useMemo(() => new Map((entries ?? []).map((e) => [e.date, e])), [entries]);
   const todayLogged = byDate.has(today);
   const status = useMemo(
-    () => computeStatus(routines ?? [], entries ?? [], todayLogged ? addDays(today, 1) : today, settings),
-    [routines, entries, today, todayLogged, settings],
+    () => computeStatus(routines ?? [], entries ?? [], todayLogged ? addDays(today, 1) : today, settings, exMap),
+    [routines, entries, today, todayLogged, settings, exMap],
   );
   const inferred = new Set(status.inferredRestDates);
   const routineName = new Map((routines ?? []).map((r) => [r.id, r.name]));

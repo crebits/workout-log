@@ -184,3 +184,9 @@ describe('리뷰 수정', () => {
     expect(screen.getByLabelText('루틴')).toHaveValue(rest.id);
   });
 });
+
+test('시간 운동으로 바꿔도 옛 횟수 세트는 횟수 칸으로 보인다', async () => {
+  await repo.saveExercise({ ...bench, measure: 'seconds' });
+  open('2026-11-10');
+  expect(await screen.findByLabelText('1세트 횟수')).toHaveValue('7');
+});

@@ -1,5 +1,5 @@
 import type { Exercise, WorkoutSet } from '../../types';
-import { formatCount, measureOf } from '../../workout/measure';
+import { formatCount } from '../../workout/measure';
 
 const fmtNum = (n: number) => String(Math.round(n * 100) / 100);
 
@@ -17,11 +17,13 @@ export function summarizeSets(ex: Exercise, sets: WorkoutSet[]): string {
     return [s.durationSec ? `${fmtNum(s.durationSec / 60)}분` : '', s.distanceKm ? `${fmtNum(s.distanceKm)}km` : ''].filter(Boolean).join(' ');
   }
   if (ex.type === 'bodyweight') {
-    const body = work.map((s) => `${formatCount(s)}${s.addedWeightKg ? `(+${fmtNum(s.addedWeightKg)})` : ''}`).join(',');
-    return measureOf(ex) === 'seconds' ? body : `${body}회`;
+    const extra = (s: WorkoutSet) => (s.addedWeightKg ? `(+${fmtNum(s.addedWeightKg)})` : '');
+    // 모두 횟수면 끝에 한 번만 '회', 섞여 있으면 세트마다 자기 단위
+    if (work.every((s) => s.durationSec === undefined)) return work.map((s) => `${s.reps ?? '-'}${extra(s)}`).join(',') + '회';
+    return work.map((s) => `${formatCount(s, true)}${extra(s)}`).join(',');
   }
   const weights = new Set(work.map((s) => s.weightKg));
-  if (weights.size === 1) return `${fmtNum(work[0].weightKg ?? 0)}kg × ${work.map(formatCount).join(',')}`;
+  if (weights.size === 1) return `${fmtNum(work[0].weightKg ?? 0)}kg × ${work.map((s) => formatCount(s)).join(',')}`;
   return work.map((s) => `${fmtNum(s.weightKg ?? 0)}×${formatCount(s)}`).join(', ');
 }
 
