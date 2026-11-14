@@ -81,3 +81,18 @@ main { max-width: 640px; margin: 0 auto; padding: calc(12px + env(safe-area-inse
 .pace { font-weight: 600; font-size: .85rem; }
 .add-set { justify-self: start; font-size: .85rem; color: var(--accent); padding: 4px 0; }
 textarea { width: 100%; resize: vertical; }
+
+.stack { display: grid; gap: 4px; font-size: .82rem; color: var(--muted); flex: 1; }
+.stack input, .stack select { color: var(--text); font-size: 1rem; }
+.muscles { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .82rem; }
+.pill { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; }
+.pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pill input { position: absolute; opacity: 0; pointer-events: none; }
+.error { color: #d33; margin: 0; font-size: .85rem; }
+.danger { color: #d33; font-size: .85rem; margin-left: auto; }
+.picker { position: relative; }
+.picker input { width: 100%; }
+.picker ul { list-style: none; margin: 4px 0 0; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.picker li { padding: 10px; border-radius: 8px; cursor: pointer; }
+.picker li:active, .picker li:hover { background: var(--accent-soft); }
+.picker li.new { color: var(--accent); }

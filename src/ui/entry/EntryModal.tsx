@@ -6,35 +6,15 @@ import { toLocalDate } from '../../lib/date';
 import { bestE1rmBefore } from '../../workout/records';
 import { defaultRangeFromSets } from '../../workout/prefill';
 import type { EntryExercise, Exercise, ISODate, Routine } from '../../types';
-import { DEFAULT_INCREMENT_KG } from '../../types';
 import { useEntryDraft } from './useEntryDraft';
 import { ExerciseBlock } from './ExerciseBlock';
+import { ExercisePicker } from '../exercise/ExercisePicker';
+import { ExerciseForm } from '../exercise/ExerciseForm';
 
-export interface ExercisePickerSlot { (props: { onPick(ex: Exercise): void }): React.ReactNode }
-
-/** Task 10에서 자동완성으로 교체되는 임시 입력: 이름 + Enter */
-function SimpleExerciseInput({ onPick }: { onPick(ex: Exercise): void }) {
-  const [name, setName] = useState('');
-  return (
-    <input aria-label="운동 추가" placeholder="+ 운동 추가" value={name} onChange={(e) => setName(e.target.value)}
-      onKeyDown={async (e) => {
-        if (e.key !== 'Enter' || !name.trim()) return;
-        const ex = (await repo.findExerciseByName(name)) ??
-          (await repo.saveExercise({ name, type: 'weight', incrementKg: DEFAULT_INCREMENT_KG, primaryMuscles: [], secondaryMuscles: [], note: '' }));
-        setName('');
-        onPick(ex);
-      }} />
-  );
-}
-
-export function EntryModal({ date, onClose, Picker = SimpleExerciseInput, onEditExercise }: {
-  date: ISODate;
-  onClose(): void;
-  Picker?: ExercisePickerSlot;
-  onEditExercise?(ex: Exercise): void;
-}) {
+export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }) {
   const s = useEntryDraft(date);
   const [registering, setRegistering] = useState(false);
+  const [editing, setEditing] = useState<Exercise | null>(null);
   const title = format(toLocalDate(date), 'M월 d일 (E)', { locale: ko });
 
   useEffect(() => {
@@ -90,9 +70,10 @@ export function EntryModal({ date, onClose, Picker = SimpleExerciseInput, onEdit
                 onChange={(nb) => setBlocks((bs) => bs.map((x, j) => (j === i ? nb : x)))}
                 onMove={(dir) => setBlocks((bs) => { const c = [...bs]; [c[i], c[i + dir]] = [c[i + dir], c[i]]; return c; })}
                 onRemove={() => setBlocks((bs) => bs.filter((_, j) => j !== i))}
-                onEditExercise={() => { const ex = s.exercises.get(b.exerciseId); if (ex && onEditExercise) onEditExercise(ex); }} />
+                onEditExercise={() => setEditing(s.exercises.get(b.exerciseId) ?? null)} />
             ))}
-            <Picker onPick={(ex) => setBlocks((bs) => [...bs, { exerciseId: ex.id, order: bs.length, sets: [{ isWarmup: false }] }])} />
+            {editing && <ExerciseForm key={editing.id} initial={editing} onSaved={() => setEditing(null)} onCancel={() => setEditing(null)} />}
+            <ExercisePicker onPick={(ex) => setBlocks((bs) => [...bs, { exerciseId: ex.id, order: bs.length, sets: [{ isWarmup: false }] }])} />
           </>)}
 
           <textarea aria-label="메모" placeholder="메모 (컨디션, 식단, 통증…)" rows={3} value={s.draft.memo}
