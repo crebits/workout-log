@@ -15,6 +15,8 @@ export function ExerciseForm(p: { initial?: Exercise; initialName?: string; onSa
   const [primary, setPrimary] = useState<string[]>(init?.primaryMuscles ?? []);
   const [secondary, setSecondary] = useState<string[]>(init?.secondaryMuscles ?? []);
   const [note, setNote] = useState(init?.note ?? '');
+  // 부위는 지금 쓰는 곳이 없어 접어 둔다 (나중에 부위별 볼륨 화면에서 사용)
+  const [showMuscles, setShowMuscles] = useState(false);
   const [error, setError] = useState('');
 
   const toggle = (list: string[], set: (v: string[]) => void, m: string) => set(list.includes(m) ? list.filter((x) => x !== m) : [...list, m]);
@@ -62,7 +64,12 @@ export function ExerciseForm(p: { initial?: Exercise; initialName?: string; onSa
           <label className="stack">증가 단위(kg)<input aria-label="증가 단위(kg)" inputMode="decimal" value={inc} onChange={(e) => setInc(e.target.value)} /></label>
         )}
       </div>
-      {type !== 'cardio' && (<>
+      {type !== 'cardio' && (
+        <button className="chip more" aria-expanded={showMuscles} onClick={() => setShowMuscles((v) => !v)}>
+          {showMuscles ? '▾' : '▸'} 부위 (선택 · 나중에 볼륨 계산용){!showMuscles && primary.length > 0 ? `: ${primary.join(', ')}` : ''}
+        </button>
+      )}
+      {type !== 'cardio' && showMuscles && (<>
         <div className="muscles"><span className="muted">주 부위</span>
           {MUSCLES.map((m) => (
             <label key={m} className={`pill ${primary.includes(m) ? 'on' : ''}`}>

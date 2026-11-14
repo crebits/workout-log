@@ -54,6 +54,7 @@ test('ExerciseForm: 증가 단위·부위·고정 메모 수정', async () => {
   const onSaved = vi.fn();
   render(<ExerciseForm initial={a} onSaved={onSaved} onCancel={() => {}} />);
   fireEvent.change(screen.getByLabelText('증가 단위(kg)'), { target: { value: '2' } });
+  fireEvent.click(screen.getByRole('button', { name: /부위/ }));
   fireEvent.click(screen.getByRole('checkbox', { name: '주 부위 가슴' }));
   fireEvent.click(screen.getByRole('checkbox', { name: '보조 부위 삼두' }));
   fireEvent.change(screen.getByLabelText('고정 메모'), { target: { value: '의자 4' } });
@@ -62,6 +63,16 @@ test('ExerciseForm: 증가 단위·부위·고정 메모 수정', async () => {
     const e = await repo.getExercise(a.id);
     expect(e).toMatchObject({ incrementKg: 2, primaryMuscles: ['가슴'], secondaryMuscles: ['삼두'], note: '의자 4' });
   });
+});
+
+test('ExerciseForm: 부위 칸은 접혀 있고, 접힌 채 저장해도 부위 값은 유지', async () => {
+  const a = await repo.saveExercise({ name: '벤치프레스', type: 'weight', incrementKg: 2.5, primaryMuscles: ['가슴'], secondaryMuscles: ['삼두'], note: '' });
+  render(<ExerciseForm initial={a} onSaved={() => {}} onCancel={() => {}} />);
+  expect(screen.queryByRole('checkbox', { name: '주 부위 가슴' })).toBeNull();
+  expect(screen.getByRole('button', { name: /부위/ })).toHaveAttribute('aria-expanded', 'false');
+  fireEvent.change(screen.getByLabelText('고정 메모'), { target: { value: '의자 4' } });
+  fireEvent.click(screen.getByRole('button', { name: '저장' }));
+  await waitFor(async () => expect(await repo.getExercise(a.id)).toMatchObject({ primaryMuscles: ['가슴'], secondaryMuscles: ['삼두'], note: '의자 4' }));
 });
 
 test('ExerciseForm: 같은 이름 운동이 이미 있으면 저장 안 함', async () => {

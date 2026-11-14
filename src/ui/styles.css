@@ -141,3 +141,4 @@ textarea { width: 100%; resize: vertical; }
 .ex-fold .ex-sum { color: var(--muted); font-size: .85rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ex-fold .up { color: var(--good); }
 .caret { color: var(--muted); font-size: .8rem; }
+.chip.more { justify-self: start; font-size: .82rem; color: var(--muted); }
