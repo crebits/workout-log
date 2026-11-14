@@ -226,3 +226,57 @@ describe('1차 미뤄 둔 것', () => {
     await waitFor(async () => expect((await repo.getEntry('2026-11-12'))?.exercises[0].sets[1].reps).toBe(8));
   });
 });
+
+describe('운동 접기', () => {
+  beforeEach(async () => {
+    const dips = await repo.saveExercise({ name: '딥스', type: 'bodyweight', incrementKg: 0, primaryMuscles: [], secondaryMuscles: [], note: '' });
+    await repo.saveEntry({ date: '2026-11-12', routineId: null, isDeload: false, memo: '',
+      exercises: [
+        { exerciseId: bench.id, order: 0, sets: [{ isWarmup: false, weightKg: 80, reps: 8 }, { isWarmup: false, weightKg: 80, reps: 7 }] },
+        { exerciseId: dips.id, order: 1, sets: [{ isWarmup: false, reps: 12 }, { isWarmup: false, reps: 10 }] },
+      ] });
+  });
+
+  test('첫 운동만 펼쳐지고 나머지는 요약 한 줄', async () => {
+    open();
+    expect(await screen.findByLabelText('1세트 무게')).toHaveValue('80');
+    const folded = screen.getByRole('button', { name: /딥스 펼치기/ });
+    expect(folded).toHaveAttribute('aria-expanded', 'false');
+    expect(folded).toHaveTextContent('12,10');
+    expect(screen.getAllByLabelText(/1세트 횟수/)).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /위로/ })).toBeNull();
+  });
+
+  test('접힌 운동을 누르면 펼쳐지고 펼쳤던 운동은 요약으로 접힌다', async () => {
+    open();
+    fireEvent.click(await screen.findByRole('button', { name: /딥스 펼치기/ }));
+    expect(await screen.findByLabelText('1세트 추가 무게')).toBeInTheDocument();
+    expect(screen.queryByLabelText('1세트 무게')).toBeNull();
+    expect(screen.getByRole('button', { name: /벤치프레스 펼치기/ })).toHaveTextContent('80kg × 8,7');
+  });
+
+  test('▾를 누르면 모두 접힌다', async () => {
+    open();
+    fireEvent.click(await screen.findByRole('button', { name: '벤치프레스 접기' }));
+    expect(screen.queryByLabelText('1세트 무게')).toBeNull();
+    expect(screen.getByRole('button', { name: /벤치프레스 펼치기/ })).toBeInTheDocument();
+  });
+
+  test('한 줄 추가로 넣은 운동이 펼쳐진다', async () => {
+    open();
+    const input = await screen.findByLabelText('운동 추가');
+    fireEvent.change(input, { target: { value: '딥스' } });
+    fireEvent.click(await screen.findByRole('option', { name: '딥스' }));
+    const g = await screen.findByRole('group', { name: '딥스 추가' });
+    fireEvent.change(within(g).getByLabelText('세트 수'), { target: { value: '1' } });
+    fireEvent.click(within(g).getByRole('button', { name: '추가' }));
+    expect(await screen.findByLabelText('3세트 추가 무게')).toBeInTheDocument();
+    expect(screen.queryByLabelText('1세트 무게')).toBeNull();
+  });
+
+  test('운동마다 끌어서 순서 바꾸는 손잡이가 있다', async () => {
+    open();
+    expect(await screen.findByRole('button', { name: '벤치프레스 끌어서 순서 바꾸기' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '딥스 끌어서 순서 바꾸기' })).toBeInTheDocument();
+  });
+});

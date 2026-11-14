@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { afterMove, afterRemove, type Open } from './accordion';
 import { repo } from '../../data/repo';
 import { dayTitle } from '../../lib/date';
 import { bestE1rmBefore } from '../../workout/records';
@@ -14,6 +17,13 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
   const s = useEntryDraft(date);
   const [registering, setRegistering] = useState(false);
   const [editing, setEditing] = useState<Exercise | null>(null);
+  // 한 번에 한 운동만 펼친다. 처음엔 첫 운동
+  const [openIdx, setOpenIdx] = useState<Open>(0);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const title = dayTitle(date);
 
   useEffect(() => {
@@ -52,7 +62,7 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
         {s.saveError && <p className="error" role="alert">저장에 실패했어요. 내용을 고치거나 닫으면 다시 시도해요.</p>}
         {!s.ready ? <p className="muted">불러오는 중…</p> : (<>
           <div className="row">
-            <select aria-label="루틴" value={s.draft.routineId ?? ''} onChange={(e) => s.selectRoutine(e.target.value || null)}>
+            <select aria-label="루틴" value={s.draft.routineId ?? ''} onChange={(e) => { s.selectRoutine(e.target.value || null); setOpenIdx(0); }}>
               <option value="">루틴 없음</option>
               {s.routines.filter((r) => !r.deletedAt || r.id === s.draft.routineId).map((r) => (
                 <option key={r.id} value={r.id} disabled={!!r.deletedAt}>{r.deletedAt ? `${r.name} (삭제된 루틴)` : r.name}</option>
@@ -70,21 +80,35 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
           {registering && <RegisterPanel s={s} routine={routine} onDone={() => setRegistering(false)} />}
 
           {isRest ? <p className="muted">휴식한 날로 기록합니다.</p> : (<>
-            {s.draft.exercises.map((b, i) => (
-              <ExerciseBlock key={`${b.exerciseId}-${i}`} exercise={s.exercises.get(b.exerciseId)} block={b} hint={s.hints[b.exerciseId]}
-                trophy={!!s.trophies[b.exerciseId]} lightRatio={lightRatio(b)} isFirst={i === 0} isLast={i === s.draft.exercises.length - 1}
-                onChange={(nb) => setBlocks((bs) => bs.map((x, j) => (j === i ? nb : x)))}
-                onMove={(dir) => setBlocks((bs) => { const c = [...bs]; [c[i], c[i + dir]] = [c[i + dir], c[i]]; return c; })}
-                onRemove={() => setBlocks((bs) => bs.filter((_, j) => j !== i))}
-                onEditExercise={() => setEditing(s.exercises.get(b.exerciseId) ?? null)} />
-            ))}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e: DragEndEvent) => {
+              if (!e.over || e.active.id === e.over.id) return;
+              const from = Number(String(e.active.id).slice(1)), to = Number(String(e.over.id).slice(1));
+              setBlocks((bs) => arrayMove(bs, from, to));
+              setOpenIdx((o) => afterMove(o, from, to));
+            }}>
+              <SortableContext items={s.draft.exercises.map((_, i) => `b${i}`)} strategy={verticalListSortingStrategy}>
+                {s.draft.exercises.map((b, i) => (
+                  <ExerciseBlock key={`${b.exerciseId}-${i}`} sortId={`b${i}`} exercise={s.exercises.get(b.exerciseId)} block={b} hint={s.hints[b.exerciseId]}
+                    trophy={!!s.trophies[b.exerciseId]} lightRatio={lightRatio(b)}
+                    open={openIdx === i} onToggle={() => setOpenIdx((o) => (o === i ? null : i))}
+                    onChange={(nb) => setBlocks((bs) => bs.map((x, j) => (j === i ? nb : x)))}
+                    onRemove={() => { setBlocks((bs) => bs.filter((_, j) => j !== i)); setOpenIdx((o) => afterRemove(o, i)); }}
+                    onEditExercise={() => setEditing(s.exercises.get(b.exerciseId) ?? null)} />
+                ))}
+              </SortableContext>
+            </DndContext>
             {editing && <ExerciseForm key={editing.id} initial={editing} onSaved={() => setEditing(null)} onCancel={() => setEditing(null)} />}
-            <QuickAdd date={date} entries={s.entries} exercises={s.exercises} onPendingChange={setQuickPending} onAdd={(ex, sets) => setBlocks((bs) => {
-              // 같은 운동이 이미 있으면 그 운동에 세트를 이어 붙인다
+            <QuickAdd date={date} entries={s.entries} exercises={s.exercises} onPendingChange={setQuickPending} onAdd={(ex, sets) => {
+              // 같은 운동이 이미 있으면 그 운동에 세트를 이어 붙이고, 그 운동을 펼친다
+              const bs = s.draft.exercises;
               const i = bs.findIndex((b) => b.exerciseId === ex.id);
-              if (i < 0) return [...bs, { exerciseId: ex.id, order: bs.length, sets }];
-              return bs.map((b, j) => (j === i ? { ...b, sets: [...b.sets, ...sets] } : b));
-            })} />
+              setOpenIdx(i < 0 ? bs.length : i);
+              setBlocks((cur) => {
+                const k = cur.findIndex((b) => b.exerciseId === ex.id);
+                if (k < 0) return [...cur, { exerciseId: ex.id, order: cur.length, sets }];
+                return cur.map((b, j) => (j === k ? { ...b, sets: [...b.sets, ...sets] } : b));
+              });
+            }} />
           </>)}
 
           <textarea aria-label="메모" placeholder="메모 (컨디션, 식단, 통증…)" rows={3} value={s.draft.memo}

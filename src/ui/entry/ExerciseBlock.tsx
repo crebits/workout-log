@@ -1,3 +1,5 @@
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { EntryExercise, Exercise, WorkoutSet } from '../../types';
 import type { ExerciseHint } from '../../workout/prefill';
 import { SetRow } from './SetRow';
@@ -9,10 +11,11 @@ export function ExerciseBlock(p: {
   hint?: ExerciseHint;
   trophy: boolean;
   lightRatio: number | null;
-  isFirst: boolean;
-  isLast: boolean;
+  /** 끌어서 순서 바꾸기용 id */
+  sortId: string;
+  open: boolean;
+  onToggle(): void;
   onChange(b: EntryExercise): void;
-  onMove(dir: -1 | 1): void;
   onRemove(): void;
   onEditExercise?(): void;
 }) {
@@ -21,15 +24,36 @@ export function ExerciseBlock(p: {
   let workNo = 0;
   const setSets = (sets: WorkoutSet[]) => p.onChange({ ...p.block, sets });
   const last = ex && p.hint?.lastSets ? summarizeSets(ex, p.hint.lastSets) : '';
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: p.sortId });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  const handle = <button className="handle" aria-label={`${name} 끌어서 순서 바꾸기`} {...attributes} {...listeners}>≡</button>;
+
+  if (!p.open) {
+    const done = ex && p.block.sets.length ? summarizeSets(ex, p.block.sets) : '세트 없음';
+    return (
+      <article ref={setNodeRef} style={style} className="ex-block folded">
+        <header>
+          {handle}
+          <button className="ex-fold" aria-expanded="false" aria-label={`${name} 펼치기: ${done}`} onClick={p.onToggle}>
+            <span className="caret">▸</span>
+            <span className="ex-name">{name}</span>
+            <span className="ex-sum">{done}</span>
+            {p.trophy && <span title="신기록">🏆</span>}
+            {(p.hint?.ready || p.hint?.bodyweightReady) && <span className="up">⬆</span>}
+          </button>
+        </header>
+      </article>
+    );
+  }
 
   return (
-    <article className="ex-block">
+    <article ref={setNodeRef} style={style} className="ex-block">
       <header>
+        {handle}
+        <button className="icon caret" aria-expanded="true" aria-label={`${name} 접기`} onClick={p.onToggle}>▾</button>
         <button className="ex-name" onClick={p.onEditExercise}>{name}</button>
         {p.trophy && <span aria-label="신기록" title="신기록">🏆</span>}
         <span className="spacer" />
-        <button className="icon" aria-label={`${name} 위로`} disabled={p.isFirst} onClick={() => p.onMove(-1)}>↑</button>
-        <button className="icon" aria-label={`${name} 아래로`} disabled={p.isLast} onClick={() => p.onMove(1)}>↓</button>
         <button className="icon" aria-label={`${name} 빼기`} onClick={p.onRemove}>×</button>
       </header>
       {ex?.note && <p className="note">📌 {ex.note}</p>}

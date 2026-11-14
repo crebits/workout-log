@@ -133,3 +133,11 @@ textarea { width: 100%; resize: vertical; }
 .quick-add .row { gap: 6px; }
 .unit-toggle { min-width: 2.4em; }
 .small-btn { padding: 8px 14px; }
+
+.ex-block .handle { font-size: 1.1rem; color: var(--muted); padding: 2px 6px; touch-action: none; cursor: grab; flex: none; }
+.ex-block.folded { padding: 6px 10px; }
+.ex-fold { display: flex; align-items: baseline; gap: 8px; flex: 1; min-width: 0; text-align: left; padding: 6px 0; }
+.ex-fold .ex-name { flex: none; }
+.ex-fold .ex-sum { color: var(--muted); font-size: .85rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-fold .up { color: var(--good); }
+.caret { color: var(--muted); font-size: .8rem; }
