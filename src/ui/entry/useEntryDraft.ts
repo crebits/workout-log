@@ -10,8 +10,10 @@ const SAVE_DELAY_MS = 300;
 export interface EntryDraftState {
   ready: boolean;
   draft: EntryDraft;
-  /** 저장된(또는 저장 대기 중인) 일지인지. false면 미리 채운 상태로 아직 저장 안 함 */
+  /** 루틴·운동이 확정됐는지. false면 미리 채운 상태라 메모 외에는 저장하지 않는다 */
   dirty: boolean;
+  /** 마지막 저장이 실패했는지 */
+  saveError: boolean;
   status: AppStatus | null;
   routines: Routine[];
   exercises: Map<string, Exercise>;
@@ -23,11 +25,12 @@ export interface EntryDraftState {
   selectRoutine(id: string | null): void;
   setDeload(on: boolean): void;
   confirmAsIs(): void;
-  flush(): Promise<void>;
+  /** 대기 중인 저장을 실행한다. 실패하면 false */
+  flush(): Promise<boolean>;
 }
 
 export function useEntryDraft(date: ISODate): EntryDraftState {
-  const routinesQ = live.routines();
+  const routinesQ = live.routines({ includeDeleted: true });
   const exercisesQ = live.exercises({ includeDeleted: true });
   const entriesQ = live.entries();
   const settingsQ = live.settings();
@@ -36,6 +39,9 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
   const exercises = useMemo(() => new Map((exercisesQ ?? []).map((e) => [e.id, e])), [exercisesQ]);
   const [draft, setDraft] = useState<EntryDraft>({ date, routineId: null, isDeload: false, memo: '', exercises: [] });
   const [dirty, setDirty] = useState(false);
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty;
+  const [saveError, setSaveError] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const setsTouched = useRef(false);
   const draftRef = useRef(draft);
@@ -61,23 +67,34 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
   useEffect(() => {
     if (!loaded || initialized) return;
     const existing = entriesQ!.find((e) => e.date === date);
-    if (existing) {
+    if (existing && (existing.routineId !== null || existing.exercises.length > 0)) {
       setDraft({ date, routineId: existing.routineId, isDeload: existing.isDeload, memo: existing.memo, exercises: existing.exercises });
       setDirty(true);
       setsTouched.current = true;
     } else {
       const routineId = status!.nextRoutineId;
       const deload = status!.deload.active;
-      setDraft({ date, routineId, isDeload: deload, memo: '', exercises: prefillFor(routineId, deload).exercises });
+      setDraft({ date, routineId, isDeload: deload, memo: existing?.memo ?? '', exercises: prefillFor(routineId, deload).exercises });
     }
     setInitialized(true);
   }, [loaded, initialized, entriesQ, date, status, prefillFor]);
 
-  const flush = useCallback(async () => {
+  const flush = useCallback(async (): Promise<boolean> => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
-    if (!pending.current) return;
+    if (!pending.current) return true;
     pending.current = false;
-    await repo.saveEntry(draftRef.current);
+    const d = draftRef.current;
+    // 확정 전에는 미리 채운 루틴·운동을 저장하지 않는다 (메모만)
+    const toSave = dirtyRef.current ? d : { ...d, routineId: null, isDeload: false, exercises: [] };
+    try {
+      await repo.saveEntry(toSave);
+      setSaveError(false);
+      return true;
+    } catch {
+      pending.current = true; // 다음 변경이나 닫기 때 다시 시도
+      setSaveError(true);
+      return false;
+    }
   }, []);
 
   const scheduleSave = useCallback(() => {
@@ -94,8 +111,11 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
 
   const update: EntryDraftState['update'] = useCallback((fn, opts) => {
     setDraft((d) => { const next = fn(d); draftRef.current = next; return next; });
-    if (opts?.touchesSets !== false) setsTouched.current = true;
-    setDirty(true);
+    if (opts?.touchesSets !== false) {
+      setsTouched.current = true;
+      dirtyRef.current = true;
+      setDirty(true);
+    }
     scheduleSave();
   }, [scheduleSave]);
 
@@ -106,19 +126,21 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
     setsTouched.current = false;
     setDraft(next);
     draftRef.current = next;
-    if (dirty) scheduleSave();
-  }, [prefillFor, dirty, scheduleSave]);
+    if (routinesQ?.find((r) => r.id === id)?.kind === 'rest') { dirtyRef.current = true; setDirty(true); }
+    if (dirtyRef.current) scheduleSave();
+  }, [prefillFor, routinesQ, scheduleSave]);
 
   const setDeload = useCallback((on: boolean) => {
     const d = draftRef.current;
     const next = { ...d, isDeload: on, exercises: setsTouched.current ? d.exercises : prefillFor(d.routineId, on).exercises };
     setDraft(next);
     draftRef.current = next;
-    setDirty(true);
-    scheduleSave();
+    if (dirtyRef.current) scheduleSave();
   }, [prefillFor, scheduleSave]);
 
   const confirmAsIs = useCallback(() => {
+    dirtyRef.current = true;
+    setsTouched.current = true;
     setDirty(true);
     pending.current = true;
     void flush();
@@ -140,7 +162,7 @@ export function useEntryDraft(date: ISODate): EntryDraftState {
   }, [dirty, draft, exercises, entriesQ]);
 
   return {
-    ready: loaded && initialized, draft, dirty, status, routines: routinesQ ?? [], exercises, entries: entriesQ ?? [],
+    ready: loaded && initialized, draft, dirty, saveError, status, routines: routinesQ ?? [], exercises, entries: entriesQ ?? [],
     settings: settingsQ ?? null, hints, trophies, update, selectRoutine, setDeload, confirmAsIs, flush,
   };
 }

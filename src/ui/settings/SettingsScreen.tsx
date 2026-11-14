@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { live, repo } from '../../data/repo';
 import { buildBackup, parseBackup, planImport, type ImportPlan } from '../../data/backup';
 import * as files from '../../platform/files';
@@ -25,15 +25,30 @@ export function SettingsScreen() {
   const s = live.settings();
   const [importPlan, setImportPlan] = useState<ImportPlan | null>(null);
   const [message, setMessage] = useState('');
+  const [prepared, setPrepared] = useState<string | null>(null);
+  const entries = live.entries();
+  const routines = live.routines({ includeDeleted: true });
+  const exercises = live.exercises({ includeDeleted: true });
+  useEffect(() => {
+    let alive = true;
+    void buildBackup().then((b) => { if (alive) setPrepared(JSON.stringify(b)); });
+    return () => { alive = false; };
+  }, [entries, routines, exercises, s]);
   if (!s) return <section className="screen" />;
 
   const save = (patch: Partial<Omit<Settings, 'id'>>) => void repo.saveSettings(patch);
   const range = s.defaultTargetRange;
 
   const exportBackup = async () => {
-    const text = JSON.stringify(await buildBackup());
+    // 공유 시트는 버튼을 누른 직후에 열어야 하므로, 미리 만들어 둔 백업이 있으면 그것을 쓴다
+    const text = prepared ?? JSON.stringify(await buildBackup());
     const result = await files.shareOrDownload(`workout-log-${todayISO()}.json`, text);
-    if (result !== 'cancelled') { await repo.saveSettings({ lastBackupAt: Date.now() }); setMessage('백업 파일을 저장했어요'); }
+    if (result === 'shared' || result === 'downloaded') {
+      await repo.saveSettings({ lastBackupAt: Date.now() });
+      setMessage('백업 파일을 저장했어요');
+    } else if (result === 'failed') {
+      setMessage('백업 파일을 저장하지 못했어요. 다시 눌러 주세요');
+    }
   };
   const onFile = async (file: File | undefined) => {
     if (!file) return;

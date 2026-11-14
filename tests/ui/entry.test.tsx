@@ -121,3 +121,61 @@ test('메모만 써도 저장되고, 다 지우면 삭제된다', async () => {
   fireEvent.change(screen.getByLabelText('메모'), { target: { value: '' } });
   await waitFor(async () => expect(await repo.getEntry('2026-11-20')).toBeUndefined());
 });
+
+describe('리뷰 수정', () => {
+  test('메모만 쓰면 미리 채운 루틴·세트는 저장되지 않는다', async () => {
+    open();
+    await screen.findByLabelText('1세트 무게');
+    fireEvent.change(screen.getByLabelText('메모'), { target: { value: '감기로 쉼' } });
+    await waitFor(async () => expect((await repo.getEntry('2026-11-12'))?.memo).toBe('감기로 쉼'));
+    const e = (await repo.getEntry('2026-11-12'))!;
+    expect(e.routineId).toBeNull();
+    expect(e.exercises).toEqual([]);
+    expect(screen.queryByLabelText('신기록')).toBeNull();
+    // 미리 채운 화면은 그대로 보이고, 그대로 완료로 확정할 수 있다
+    expect(screen.getByLabelText('1세트 무게')).toHaveValue('80');
+    fireEvent.click(screen.getByRole('button', { name: '그대로 완료' }));
+    await waitFor(async () => expect((await repo.getEntry('2026-11-12'))?.routineId).toBe(heavy.id));
+  });
+
+  test('메모만 있는 날을 다시 열면 미리 채우기와 메모가 함께 보인다', async () => {
+    await repo.saveEntry({ date: '2026-11-12', routineId: null, isDeload: false, memo: '아파서 쉼', exercises: [] });
+    open();
+    expect(await screen.findByLabelText('1세트 무게')).toHaveValue('80');
+    expect(screen.getByLabelText('메모')).toHaveValue('아파서 쉼');
+    expect(screen.getByRole('button', { name: '그대로 완료' })).toBeInTheDocument();
+  });
+
+  test('저장이 실패하면 알리고, 닫을 때 다시 시도한다', async () => {
+    const real = repo.saveEntry.bind(repo);
+    const spy = vi.spyOn(repo, 'saveEntry').mockRejectedValueOnce(new Error('connection lost'));
+    const onClose = vi.fn();
+    render(<EntryModal date="2026-11-12" onClose={onClose} />);
+    fireEvent.change(await screen.findByLabelText('1세트 횟수'), { target: { value: '8' } });
+    expect(await screen.findByRole('alert')).toHaveTextContent('저장에 실패했어요');
+    spy.mockImplementation(real);
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect((await repo.getEntry('2026-11-12'))?.exercises[0].sets[1].reps).toBe(8);
+  });
+
+  test('저장이 계속 실패하면 닫히지 않는다', async () => {
+    vi.spyOn(repo, 'saveEntry').mockRejectedValue(new Error('connection lost'));
+    const onClose = vi.fn();
+    render(<EntryModal date="2026-11-12" onClose={onClose} />);
+    fireEvent.change(await screen.findByLabelText('1세트 횟수'), { target: { value: '8' } });
+    await screen.findByRole('alert');
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    await settle();
+    expect(onClose).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  test('지운 휴식 루틴의 기록은 휴식으로 보인다', async () => {
+    const rest = (await repo.listRoutines())[1];
+    await repo.deleteRoutine(rest.id);
+    open('2026-11-11');
+    expect(await screen.findByText('휴식한 날로 기록합니다.')).toBeInTheDocument();
+    expect(screen.getByLabelText('루틴')).toHaveValue(rest.id);
+  });
+});

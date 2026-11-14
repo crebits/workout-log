@@ -35,3 +35,11 @@ test('중간에 한 번 채웠으면 정체 아님', () => {
 test('최근 3회만 본다', () => {
   expect(isStalled([[a(75, 8)], [a(80, 7)], [a(80, 7)], [a(80, 6)]], r)).toBe(true);
 });
+
+test('세트별 무게가 다르면 판단도 세트별: 채운 세트만 올림', () => {
+  const res = decideProgression([a(60, 8), a(70, 8), a(80, 6)], r, 2.5);
+  expect(res).toEqual({ ready: true, next: [a(62.5, 6), a(72.5, 6), a(80, 6)] });
+});
+test('같은 무게면 전부 채워야 올림 (세트별 아님)', () => {
+  expect(decideProgression([a(80, 8), a(80, 6)], r, 2.5)).toEqual({ ready: false, next: [a(80, 8), a(80, 6)] });
+});

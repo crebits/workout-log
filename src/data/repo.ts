@@ -49,8 +49,9 @@ export const repo = {
     await db.exercises.update(id, { deletedAt: now(), updatedAt: now() });
   },
 
-  async listRoutines(): Promise<Routine[]> {
-    return (await db.routines.toArray()).filter(notDeleted).sort((a, b) => a.order - b.order);
+  async listRoutines(opts?: { includeDeleted?: boolean }): Promise<Routine[]> {
+    const all = await db.routines.toArray();
+    return (opts?.includeDeleted ? all : all.filter(notDeleted)).sort((a, b) => a.order - b.order);
   },
   async saveRoutine(input: Input<Routine>): Promise<Routine> {
     const existing = input.id ? await db.routines.get(input.id) : undefined;
@@ -105,7 +106,7 @@ export const repo = {
 /** 화면용 실시간 조회 훅 */
 export const live = {
   exercises: (opts?: { includeDeleted?: boolean }) => useLiveQuery(() => repo.listExercises(opts), [opts?.includeDeleted]),
-  routines: () => useLiveQuery(() => repo.listRoutines(), []),
+  routines: (opts?: { includeDeleted?: boolean }) => useLiveQuery(() => repo.listRoutines(opts), [opts?.includeDeleted]),
   entries: () => useLiveQuery(() => repo.listEntries(), []),
   settings: () => useLiveQuery(() => repo.getSettings(), []),
 };

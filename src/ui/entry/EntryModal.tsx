@@ -21,7 +21,7 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const close = async () => { await s.flush(); onClose(); };
+  const close = async () => { if (await s.flush()) onClose(); };
   const routine = s.routines.find((r) => r.id === s.draft.routineId);
   const isRest = routine?.kind === 'rest';
   const deloadSuggested = !!s.status && !s.status.deload.active && (s.status.deload.due || s.status.stallSignal);
@@ -44,11 +44,14 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
           <h2>{title}</h2>
           <button className="icon" aria-label="닫기" onClick={() => void close()}>✕</button>
         </header>
+        {s.saveError && <p className="error" role="alert">저장에 실패했어요. 내용을 고치거나 닫으면 다시 시도해요.</p>}
         {!s.ready ? <p className="muted">불러오는 중…</p> : (<>
           <div className="row">
             <select aria-label="루틴" value={s.draft.routineId ?? ''} onChange={(e) => s.selectRoutine(e.target.value || null)}>
               <option value="">루틴 없음</option>
-              {s.routines.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              {s.routines.filter((r) => !r.deletedAt || r.id === s.draft.routineId).map((r) => (
+                <option key={r.id} value={r.id} disabled={!!r.deletedAt}>{r.deletedAt ? `${r.name} (삭제된 루틴)` : r.name}</option>
+              ))}
             </select>
             {!isRest && <button className="chip" onClick={() => setRegistering((v) => !v)}>⭐ 루틴 등록</button>}
           </div>
@@ -96,7 +99,7 @@ function RegisterPanel({ s, routine, onDone }: { s: ReturnType<typeof useEntryDr
 
   const saveNew = async () => {
     if (!name.trim()) return;
-    const order = Math.max(-1, ...s.routines.map((r) => r.order)) + 1;
+    const order = Math.max(-1, ...s.routines.filter((r) => !r.deletedAt).map((r) => r.order)) + 1;
     const r = await repo.saveRoutine({ name: name.trim(), kind: 'workout', intensity: intensity || null, order, items: items() });
     s.update((d) => ({ ...d, routineId: r.id }), { touchesSets: false });
     onDone();

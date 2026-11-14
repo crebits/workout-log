@@ -72,3 +72,14 @@ test('이전 달로 이동', async () => {
   fireEvent.click(await screen.findByRole('button', { name: '이전 달' }));
   expect(await screen.findByText('2026년 10월')).toBeInTheDocument();
 });
+
+test('지운 루틴의 기록도 루틴 이름이 보인다', async () => {
+  const { a, r } = await seed();
+  await save('2026-11-10', a.id);
+  await save('2026-11-11', r.id);
+  await repo.deleteRoutine(a.id);
+  await repo.deleteRoutine(r.id);
+  render(<CalendarScreen today="2026-11-15" onOpenDate={() => {}} />);
+  expect(await screen.findByText('가슴·삼두 고중량', { selector: '.cell-label' })).toBeInTheDocument();
+  expect(screen.getByText('휴식', { selector: '.cell-label' })).toBeInTheDocument();
+});

@@ -5,13 +5,21 @@ export interface Range { min: number; max: number }
 const allReachedTop = (attempts: Attempt[], range: Range) =>
   attempts.length > 0 && attempts.every((t) => t.value >= range.max);
 
-/** 모든 시도가 범위 위쪽을 채웠으면 load를 step만큼 올리고 value를 범위 아래쪽으로. */
+/**
+ * 올릴 차례 판단.
+ * - load가 모두 같으면: 모든 시도가 범위 위쪽을 채웠을 때만 전부 올린다.
+ * - load가 서로 다르면(피라미드 등): 시도마다 따로 판단해 채운 것만 올린다.
+ * 올린 시도는 load + step, value는 범위 아래쪽. ready는 하나라도 올렸는지.
+ */
 export function decideProgression(last: Attempt[], range: Range, step: number): { ready: boolean; next: Attempt[] } {
+  const perAttempt = new Set(last.map((t) => t.load)).size > 1;
+  const advance = (t: Attempt) => ({ load: t.load === null ? null : t.load + step, value: range.min });
+  if (perAttempt) {
+    const next = last.map((t) => (t.value >= range.max ? advance(t) : { ...t }));
+    return { ready: last.some((t) => t.value >= range.max), next };
+  }
   const ready = allReachedTop(last, range);
-  const next = last.map((t) =>
-    ready ? { load: t.load === null ? null : t.load + step, value: range.min } : { ...t },
-  );
-  return { ready, next };
+  return { ready, next: last.map((t) => (ready ? advance(t) : { ...t })) };
 }
 
 const maxLoad = (attempts: Attempt[]) => Math.max(...attempts.map((t) => t.load ?? 0));

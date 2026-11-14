@@ -33,7 +33,7 @@ function PRLines({ ex, pr }: { ex: Exercise; pr: PRs }) {
 export function RecordsScreen({ onOpenDate }: { onOpenDate(d: ISODate): void }) {
   const exercisesQ = live.exercises({ includeDeleted: true });
   const entriesQ = live.entries();
-  const routinesQ = live.routines();
+  const routinesQ = live.routines({ includeDeleted: true });
   const [selected, setSelected] = useState<string | null>(null);
 
   const cards = useMemo(() => {

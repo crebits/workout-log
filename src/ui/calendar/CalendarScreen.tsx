@@ -10,7 +10,7 @@ const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 
 export function CalendarScreen({ onOpenDate, today = todayISO() }: { onOpenDate(date: ISODate): void; today?: ISODate }) {
   const [month, setMonth] = useState(() => startOfMonthISO(today));
-  const routines = live.routines();
+  const routines = live.routines({ includeDeleted: true });
   const entries = live.entries();
   const exercises = live.exercises({ includeDeleted: true });
   const settings = live.settings() ?? { ...DEFAULT_SETTINGS, updatedAt: 0 };

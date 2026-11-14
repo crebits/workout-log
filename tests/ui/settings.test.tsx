@@ -75,3 +75,11 @@ test('iOS Safari면 설치 안내가 보이고 닫을 수 있다', () => {
   fireEvent.click(screen.getByRole('button', { name: '안내 닫기' }));
   expect(screen.queryByRole('note')).toBeNull();
 });
+
+test('공유 실패면 lastBackupAt 그대로, 안내', async () => {
+  vi.spyOn(files, 'shareOrDownload').mockResolvedValue('failed');
+  render(<SettingsScreen />);
+  fireEvent.click(await screen.findByRole('button', { name: '백업 내보내기' }));
+  expect(await screen.findByText(/백업 파일을 저장하지 못했어요/)).toBeInTheDocument();
+  expect((await repo.getSettings()).lastBackupAt).toBeNull();
+});
