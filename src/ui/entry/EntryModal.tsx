@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { repo } from '../../data/repo';
-import { toLocalDate } from '../../lib/date';
+import { dayTitle } from '../../lib/date';
 import { bestE1rmBefore } from '../../workout/records';
 import { defaultRangeFromSets } from '../../workout/prefill';
 import type { EntryExercise, Exercise, ISODate, Routine } from '../../types';
@@ -15,7 +13,7 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
   const s = useEntryDraft(date);
   const [registering, setRegistering] = useState(false);
   const [editing, setEditing] = useState<Exercise | null>(null);
-  const title = format(toLocalDate(date), 'M월 d일 (E)', { locale: ko });
+  const title = dayTitle(date);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };

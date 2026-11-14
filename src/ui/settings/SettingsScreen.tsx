@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { live, repo } from '../../data/repo';
 import { buildBackup, parseBackup, planImport, type ImportPlan } from '../../data/backup';
 import * as files from '../../platform/files';
 import { parseNum } from '../../lib/number';
-import { todayISO } from '../../lib/date';
+import { formatDateTime, todayISO } from '../../lib/date';
 import type { Settings } from '../../types';
 import { ImportDialog } from './ImportDialog';
 
@@ -54,7 +53,7 @@ export function SettingsScreen() {
       <div className="panel">
         <p className="muted small">
           기록은 이 기기에만 저장돼요. 파일 앱이나 iCloud Drive에 백업 파일을 저장해 두세요.<br />
-          마지막 백업: {s.lastBackupAt ? format(s.lastBackupAt, 'yyyy-MM-dd HH:mm') : '없음'}
+          마지막 백업: {s.lastBackupAt ? formatDateTime(s.lastBackupAt) : '없음'}
         </p>
         <div className="row">
           <button className="primary" onClick={() => void exportBackup()}>백업 내보내기</button>
