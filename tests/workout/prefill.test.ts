@@ -96,3 +96,27 @@ test('디로드 무게 감소 0이면 반올림하지 않는다 (61kg 그대로)
   const r = run(es, heavy, '2026-11-20', true, settings({ deloadWeightReduction: 0 }));
   expect(r.exercises[0].sets).toEqual([w(61, 7)]);
 });
+
+describe('앞선 기록이 없을 때 (지난 날짜를 나중에 채우는 경우)', () => {
+  test('가장 가까운 이후 기록에서 채우고, 이후 기록임을 표시', () => {
+    const es = [
+      entry('2026-11-25', { routineId: heavy.id, exercises: [block(bench.id, [w(85, 8)])] }),
+      entry('2026-11-22', { routineId: heavy.id, exercises: [block(bench.id, [w(82.5, 7)])] }),
+    ];
+    const r = run(es);
+    expect(r.exercises[0].sets).toEqual([w(82.5, 7)]);
+    expect(r.hints[bench.id]).toMatchObject({ lastDate: '2026-11-22', after: true, ready: false });
+  });
+  test('이후 기록이 범위 위쪽을 채웠어도 무게를 올리지 않는다', () => {
+    const es = [entry('2026-11-22', { routineId: heavy.id, exercises: [block(bench.id, [w(80, 8), w(80, 8)])] })];
+    expect(run(es).exercises[0].sets).toEqual([w(80, 8), w(80, 8)]);
+  });
+  test('앞선 기록이 있으면 그것을 쓴다', () => {
+    const es = [
+      entry('2026-11-10', { routineId: heavy.id, exercises: [block(bench.id, [w(80, 7)])] }),
+      entry('2026-11-22', { routineId: heavy.id, exercises: [block(bench.id, [w(85, 7)])] }),
+    ];
+    expect(run(es).exercises[0].sets).toEqual([w(80, 7)]);
+    expect(run(es).hints[bench.id].after).toBeFalsy();
+  });
+});

@@ -3,7 +3,11 @@ import { compareISO } from '../lib/date';
 import { decideProgression, type Range } from '../core/progression';
 import { countOf, measureOf, toMeasure, withCount, type Measure } from './measure';
 
-export interface ExerciseHint { lastSets: WorkoutSet[] | null; lastDate: ISODate | null; ready: boolean; bodyweightReady: boolean }
+export interface ExerciseHint {
+  lastSets: WorkoutSet[] | null; lastDate: ISODate | null; ready: boolean; bodyweightReady: boolean;
+  /** 앞선 기록이 없어 그 날짜 이후 기록을 가져왔는지 */
+  after?: boolean;
+}
 
 const roundTo = (value: number, step: number) => Math.round(Math.round(value / step) * step * 1000) / 1000;
 
@@ -15,19 +19,22 @@ function findSource(entries: Entry[], routineId: string, exerciseId: string): En
 export function buildPrefill(a: {
   routine: Routine; exercises: Map<string, Exercise>; entries: Entry[]; date: ISODate; deload: boolean; settings: Settings;
 }): { exercises: EntryExercise[]; hints: Record<string, ExerciseHint> } {
-  const candidates = a.entries
-    .filter((e) => !e.deletedAt && !e.isDeload && compareISO(e.date, a.date) < 0)
-    .sort((x, y) => compareISO(y.date, x.date));
+  const usable = a.entries.filter((e) => !e.deletedAt && !e.isDeload);
+  const before = usable.filter((e) => compareISO(e.date, a.date) < 0).sort((x, y) => compareISO(y.date, x.date));
+  // 앞선 기록이 없으면 (지난 날짜를 나중에 채우는 경우) 가장 가까운 이후 기록
+  const later = usable.filter((e) => compareISO(e.date, a.date) > 0).sort((x, y) => compareISO(x.date, y.date));
   const hints: Record<string, ExerciseHint> = {};
   const items = [...a.routine.items].sort((x, y) => x.order - y.order);
 
   const exercises = items.map((item, order): EntryExercise => {
     const ex = a.exercises.get(item.exerciseId);
-    const src = findSource(candidates, a.routine.id, item.exerciseId);
+    const prior = findSource(before, a.routine.id, item.exerciseId);
+    const src = prior ?? findSource(later, a.routine.id, item.exerciseId);
+    const fromLater = !prior && !!src;
     // 단위를 바꾼 운동이면 옛 세트의 다른 단위 값은 비우고 가져온다
     const lastSets = src ? src.exercises.filter((b) => b.exerciseId === item.exerciseId).flatMap((b) => b.sets)
       .map((s) => (ex && ex.type !== 'cardio' ? toMeasure(measureOf(ex), s) : { ...s })) : null;
-    const hint: ExerciseHint = { lastSets, lastDate: src?.date ?? null, ready: false, bodyweightReady: false };
+    const hint: ExerciseHint = { lastSets, lastDate: src?.date ?? null, ready: false, bodyweightReady: false, ...(fromLater ? { after: true } : {}) };
     hints[item.exerciseId] = hint;
     if (!lastSets || lastSets.length === 0) return { exerciseId: item.exerciseId, order, sets: [{ isWarmup: false }] };
 
@@ -37,7 +44,8 @@ export function buildPrefill(a: {
     let working = lastSets.filter((s) => !s.isWarmup);
 
     // 올릴 차례는 같은 루틴의 지난번 기록일 때만 판단한다 (스펙 6.3)
-    const sameRoutine = src!.routineId === a.routine.id;
+    // 이후 기록이면 올릴 차례를 판단하지 않는다 (앞날 기록으로 무게를 올리면 안 되므로)
+    const sameRoutine = !fromLater && src!.routineId === a.routine.id;
     if (sameRoutine && ex?.type === 'weight' && working.length > 0) {
       const res = decideProgression(working.map((s) => ({ load: s.weightKg ?? null, value: countOf(m, s) ?? 0 })), range, ex.incrementKg);
       hint.ready = res.ready;

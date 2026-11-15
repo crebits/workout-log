@@ -59,7 +59,7 @@ export function ExerciseBlock(p: {
       {ex?.note && <p className="note">📌 {ex.note}</p>}
       {(last || p.hint?.ready || p.hint?.bodyweightReady || p.lightRatio !== null) && (
         <p className="hint">
-          {last && <span>지난번: {last}{p.hint?.lastDate ? ` (${p.hint.lastDate.slice(5).replace('-', '/')})` : ''}</span>}
+          {last && <span>{p.hint?.after ? '이후 기록' : '지난번'}: {last}{p.hint?.lastDate ? ` (${p.hint.lastDate.slice(5).replace('-', '/')})` : ''}</span>}
           {p.hint?.ready && <strong className="up">⬆ 무게 올릴 차례</strong>}
           {p.hint?.bodyweightReady && <strong className="up">추가 무게 고려</strong>}
           {p.lightRatio !== null && <span className="ratio">추정 1RM의 {Math.round(p.lightRatio * 100)}%</span>}

@@ -21,3 +21,16 @@ test('루틴을 직접 골라도 지난 기록의 무게·횟수가 채워진다
   expect(await screen.findByLabelText('1세트 무게')).toHaveValue('80');
   expect(screen.getByRole('button', { name: /플라이 펼치기/ })).toHaveTextContent('14kg × 11');
 });
+
+test('지난 날짜를 채울 때 이후 기록으로 채우고 "이후 기록"이라고 보인다', async () => {
+  await db.delete(); await db.open();
+  const bench = await repo.saveExercise({ name: '벤치프레스', type: 'weight', incrementKg: 2.5, primaryMuscles: [], secondaryMuscles: [], note: '' });
+  const chest = await repo.saveRoutine({ name: '가슴', kind: 'workout', intensity: 'heavy', order: 0,
+    items: [{ exerciseId: bench.id, order: 0, targetRepsMin: 6, targetRepsMax: 8 }] });
+  await repo.saveEntry({ date: '2026-11-14', routineId: chest.id, isDeload: false, memo: '', exercises: [
+    { exerciseId: bench.id, order: 0, sets: [{ isWarmup: false, weightKg: 80, reps: 7 }] }] });
+  render(<EntryModal date="2026-11-12" onClose={() => {}} />);
+  fireEvent.change(await screen.findByLabelText('루틴'), { target: { value: chest.id } });
+  expect(await screen.findByLabelText('1세트 무게')).toHaveValue('80');
+  expect(screen.getByText(/이후 기록: 80kg × 7 \(11\/14\)/)).toBeInTheDocument();
+});

@@ -13,6 +13,14 @@ test('최근 기록에서 기본값: 마지막 본 세트 무게·횟수, 본 �
   ];
   expect(quickDefaults(bench, es, '2026-11-10')).toEqual({ weightKg: 80, count: 6, setCount: 3 });
 });
+test('앞선 기록이 없으면 가장 가까운 이후 기록으로', () => {
+  const es = [
+    entry('2026-11-25', { exercises: [block(bench.id, [w(90, 6)])] }),
+    entry('2026-11-20', { exercises: [block(bench.id, [w(85, 8), w(85, 8)])] }),
+  ];
+  expect(quickDefaults(bench, es, '2026-11-10')).toEqual({ weightKg: 85, count: 8, setCount: 2 });
+  expect(lastHint(bench, es, '2026-11-10')).toMatchObject({ lastDate: '2026-11-20', after: true });
+});
 test('디로드·삭제·이후 날짜 기록은 제외', () => {
   const es = [
     entry('2026-11-01', { exercises: [block(bench.id, [w(70, 10)])] }),

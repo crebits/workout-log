@@ -5,7 +5,7 @@ import type { Entry, Exercise, ISODate, WorkoutSet } from '../../types';
 import { measureOf, unitLabel } from '../../workout/measure';
 import { buildQuickSets, isValidSetCount, quickDefaults, type QuickValues } from '../../workout/quickAdd';
 import { workingSets, countsForRecords } from '../../workout/records';
-import { compareISO } from '../../lib/date';
+import { nearestEntry } from '../../workout/nearest';
 import { ExercisePicker } from '../exercise/ExercisePicker';
 import { fmtNum, summarizeSets } from './format';
 
@@ -43,10 +43,8 @@ export function QuickAdd(p: {
 
   const last = useMemo(() => {
     if (!ex) return null;
-    const e = p.entries
-      .filter((x) => countsForRecords(x) && compareISO(x.date, p.date) < 0 && workingSets(x, ex.id).length > 0)
-      .sort((a, b) => compareISO(b.date, a.date))[0];
-    return e ? { date: e.date, text: summarizeSets(ex, workingSets(e, ex.id)) } : null;
+    const found = nearestEntry(p.entries.filter(countsForRecords), p.date, (x) => workingSets(x, ex.id).length > 0);
+    return found ? { date: found.entry.date, after: found.after, text: summarizeSets(ex, workingSets(found.entry, ex.id)) } : null;
   }, [ex, p.entries, p.date]);
 
   if (!ex) return <ExercisePicker onPick={setPicked} />;
@@ -102,7 +100,7 @@ export function QuickAdd(p: {
         <button className="primary small-btn" disabled={!valid} onClick={() => { p.onAdd(ex, buildQuickSets(ex, values)); setPicked(null); }}>추가</button>
       </div>
       {notice && <p className={notice.tone === 'error' ? 'error' : 'hint'} role={notice.tone === 'error' ? 'alert' : 'status'}>{notice.text}</p>}
-      {last && <p className="hint">지난번: {last.text} ({last.date.slice(5).replace('-', '/')})</p>}
+      {last && <p className="hint">{last.after ? '이후 기록' : '지난번'}: {last.text} ({last.date.slice(5).replace('-', '/')})</p>}
     </fieldset>
   );
 }

@@ -1,5 +1,5 @@
 import type { Entry, Exercise, ISODate, WorkoutSet } from '../types';
-import { compareISO } from '../lib/date';
+import { nearestEntry } from './nearest';
 import { countsForRecords, workingSets } from './records';
 import type { ExerciseHint } from './prefill';
 import { countOf, measureOf, withCount } from './measure';
@@ -13,11 +13,9 @@ export const MAX_SET_COUNT = 20;
 export const isValidSetCount = (n: number | undefined): boolean =>
   n !== undefined && Number.isInteger(n) && n >= 1 && n <= MAX_SET_COUNT;
 
-/** 그 날짜 이전의 가장 최근 기록(디로드·삭제 제외)으로 기본값을 만든다 */
+/** 그 날짜 이전의 가장 최근 기록(없으면 가장 가까운 이후 기록, 디로드·삭제 제외)으로 기본값을 만든다 */
 export function quickDefaults(ex: Exercise, entries: Entry[], date: ISODate): QuickValues {
-  const last = entries
-    .filter((e) => countsForRecords(e) && compareISO(e.date, date) < 0 && workingSets(e, ex.id).length > 0)
-    .sort((a, b) => compareISO(b.date, a.date))[0];
+  const last = nearestEntry(entries.filter(countsForRecords), date, (e) => workingSets(e, ex.id).length > 0)?.entry;
   if (!last) return ex.type === 'cardio' ? { setCount: 1 } : { setCount: DEFAULT_SET_COUNT };
   const sets = workingSets(last, ex.id);
   const s = sets[sets.length - 1];
@@ -48,12 +46,11 @@ export function buildQuickSets(ex: Exercise, v: QuickValues): WorkoutSet[] {
   return Array.from({ length: v.setCount }, () => ({ ...one }));
 }
 
-/** 루틴과 상관없이 그 운동의 가장 최근 기록(디로드 제외). 지난번 표시용 */
+/** 루틴과 상관없이 그 운동의 가장 최근 기록(디로드 제외, 없으면 이후 기록). 지난번 표시용 */
 export function lastHint(ex: Exercise, entries: Entry[], date: ISODate): ExerciseHint | undefined {
-  const last = entries
-    .filter((e) => countsForRecords(e) && compareISO(e.date, date) < 0 && e.exercises.some((b) => b.exerciseId === ex.id))
-    .sort((a, b) => compareISO(b.date, a.date))[0];
-  if (!last) return undefined;
+  const found = nearestEntry(entries.filter(countsForRecords), date, (e) => e.exercises.some((b) => b.exerciseId === ex.id));
+  if (!found) return undefined;
+  const last = found.entry;
   const sets = last.exercises.filter((b) => b.exerciseId === ex.id).flatMap((b) => b.sets).map((s) => ({ ...s }));
-  return { lastSets: sets, lastDate: last.date, ready: false, bodyweightReady: false };
+  return { lastSets: sets, lastDate: last.date, ready: false, bodyweightReady: false, ...(found.after ? { after: true } : {}) };
 }
