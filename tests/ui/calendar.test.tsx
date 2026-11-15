@@ -83,3 +83,14 @@ test('지운 루틴의 기록도 루틴 이름이 보인다', async () => {
   expect(await screen.findByText('가슴·삼두 고중량', { selector: '.cell-label' })).toBeInTheDocument();
   expect(screen.getByText('휴식', { selector: '.cell-label' })).toBeInTheDocument();
 });
+
+test('같은 이름 루틴은 강도로 구분해 보인다', async () => {
+  await db.delete(); await db.open();
+  const h = await repo.saveRoutine({ name: '하체', kind: 'workout', intensity: 'heavy', order: 0, items: [] });
+  const l = await repo.saveRoutine({ name: '하체', kind: 'workout', intensity: 'light', order: 1, items: [] });
+  await repo.saveEntry({ date: '2026-11-03', routineId: h.id, isDeload: false, memo: '', exercises: [] });
+  await repo.saveEntry({ date: '2026-11-04', routineId: l.id, isDeload: false, memo: '', exercises: [] });
+  render(<CalendarScreen today="2026-11-15" onOpenDate={() => {}} />);
+  expect(await screen.findByText('하체 고중량', { selector: '.cell-label' })).toBeInTheDocument();
+  expect(screen.getByText('하체 저중량', { selector: '.cell-label' })).toBeInTheDocument();
+});

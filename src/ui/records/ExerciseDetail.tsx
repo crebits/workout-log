@@ -4,8 +4,8 @@ import type { Entry, Exercise, Routine } from '../../types';
 import { compareISO } from '../../lib/date';
 import { chartSeries, metricsFor, type Metric } from '../../workout/series';
 import { summarizeSets, formatPace, fmtNum } from '../entry/format';
+import { routineTitle } from '../../workout/routineTitle';
 
-const INTENSITY: Record<string, string> = { heavy: '고중량', light: '저중량' };
 
 export function ExerciseDetail(p: { exercise: Exercise; entries: Entry[]; routines: Map<string, Routine>; onOpenDate(d: string): void; onBack(): void }) {
   const metrics = metricsFor(p.exercise);
@@ -50,8 +50,7 @@ export function ExerciseDetail(p: { exercise: Exercise; entries: Entry[]; routin
                 <span className="date">{e.date.slice(5).replace('-', '/')}</span>
                 <span className="what">{summarizeSets(p.exercise, sets)}</span>
                 <span className="meta">
-                  {r && <span>{r.name}</span>}
-                  {r?.intensity && <span className="tag">{INTENSITY[r.intensity]}</span>}
+                  {r && <span>{routineTitle(r)}</span>}
                   {e.isDeload && <span className="tag warn">디로드</span>}
                 </span>
               </button>

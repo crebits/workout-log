@@ -45,8 +45,8 @@ test('새 루틴 추가', async () => {
 test('목표 범위 수정이 저장된다', async () => {
   const { bench, a } = await seed();
   render(<RoutinesScreen />);
-  fireEvent.click(await screen.findByRole('button', { name: 'A 편집' }));
-  const editor = await screen.findByRole('group', { name: 'A 편집' });
+  fireEvent.click(await screen.findByRole('button', { name: 'A 고중량 편집' }));
+  const editor = await screen.findByRole('group', { name: 'A 고중량 편집' });
   fireEvent.change(within(editor).getByLabelText('벤치프레스 목표 최소'), { target: { value: '5' } });
   fireEvent.change(within(editor).getByLabelText('벤치프레스 목표 최대'), { target: { value: '7' } });
   fireEvent.click(within(editor).getByRole('button', { name: '루틴 저장' }));
@@ -59,8 +59,8 @@ test('목표 범위 수정이 저장된다', async () => {
 test('min > max면 저장되지 않고 안내가 보인다', async () => {
   const { bench, a } = await seed();
   render(<RoutinesScreen />);
-  fireEvent.click(await screen.findByRole('button', { name: 'A 편집' }));
-  const editor = await screen.findByRole('group', { name: 'A 편집' });
+  fireEvent.click(await screen.findByRole('button', { name: 'A 고중량 편집' }));
+  const editor = await screen.findByRole('group', { name: 'A 고중량 편집' });
   fireEvent.change(within(editor).getByLabelText('벤치프레스 목표 최소'), { target: { value: '9' } });
   fireEvent.click(within(editor).getByRole('button', { name: '루틴 저장' }));
   expect(await within(editor).findByText(/목표 횟수 범위를 확인해 주세요/)).toBeInTheDocument();
@@ -71,8 +71,8 @@ test('min > max면 저장되지 않고 안내가 보인다', async () => {
 test('루틴 안의 운동 순서 변경', async () => {
   const { a, dip } = await seed();
   render(<RoutinesScreen />);
-  fireEvent.click(await screen.findByRole('button', { name: 'A 편집' }));
-  const editor = await screen.findByRole('group', { name: 'A 편집' });
+  fireEvent.click(await screen.findByRole('button', { name: 'A 고중량 편집' }));
+  const editor = await screen.findByRole('group', { name: 'A 고중량 편집' });
   fireEvent.click(within(editor).getByRole('button', { name: '딥스 위로' }));
   fireEvent.click(within(editor).getByRole('button', { name: '루틴 저장' }));
   await waitFor(async () => {
@@ -87,4 +87,11 @@ test('루틴 삭제는 확인 후', async () => {
   render(<RoutinesScreen />);
   fireEvent.click(await screen.findByRole('button', { name: 'B 삭제' }));
   await waitFor(async () => expect((await repo.listRoutines()).map((r) => r.name)).toEqual(['A']));
+});
+
+test('루틴 목록에 강도가 이름에 붙어 보인다', async () => {
+  await repo.saveRoutine({ name: '하체', kind: 'workout', intensity: 'heavy', order: 90, items: [] });
+  render(<RoutinesScreen />);
+  expect(await screen.findByText('하체 고중량')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '하체 고중량 편집' })).toBeInTheDocument();
 });

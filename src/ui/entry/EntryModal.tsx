@@ -12,6 +12,7 @@ import { useEntryDraft } from './useEntryDraft';
 import { ExerciseBlock } from './ExerciseBlock';
 import { QuickAdd } from './QuickAdd';
 import { ExerciseForm } from '../exercise/ExerciseForm';
+import { routineTitle } from '../../workout/routineTitle';
 
 export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }) {
   const s = useEntryDraft(date);
@@ -65,7 +66,7 @@ export function EntryModal({ date, onClose }: { date: ISODate; onClose(): void }
             <select aria-label="루틴" value={s.draft.routineId ?? ''} onChange={(e) => { s.selectRoutine(e.target.value || null); setOpenIdx(0); }}>
               <option value="">루틴 없음</option>
               {s.routines.filter((r) => !r.deletedAt || r.id === s.draft.routineId).map((r) => (
-                <option key={r.id} value={r.id} disabled={!!r.deletedAt}>{r.deletedAt ? `${r.name} (삭제된 루틴)` : r.name}</option>
+                <option key={r.id} value={r.id} disabled={!!r.deletedAt}>{r.deletedAt ? `${routineTitle(r)} (삭제된 루틴)` : routineTitle(r)}</option>
               ))}
             </select>
             {!isRest && <button className="chip" onClick={() => setRegistering((v) => !v)}>⭐ 루틴 등록</button>}
@@ -139,7 +140,7 @@ function RegisterPanel({ s, routine, onDone }: { s: ReturnType<typeof useEntryDr
     onDone();
   };
   const overwrite = async () => {
-    if (!routine || !window.confirm(`"${routine.name}" 루틴을 지금 구성으로 바꿀까요?`)) return;
+    if (!routine || !window.confirm(`"${routineTitle(routine)}" 루틴을 지금 구성으로 바꿀까요?`)) return;
     await repo.saveRoutine({ ...routine, intensity: intensity || null, items: items() });
     onDone();
   };
@@ -148,14 +149,14 @@ function RegisterPanel({ s, routine, onDone }: { s: ReturnType<typeof useEntryDr
     <fieldset className="panel" role="group" aria-label="루틴 등록">
       <legend>루틴 등록</legend>
       <div className="row">
-        <input aria-label="새 루틴 이름" placeholder="예: 가슴·삼두 고중량" value={name} onChange={(e) => setName(e.target.value)} />
+        <input aria-label="새 루틴 이름" placeholder="예: 가슴·삼두 (강도는 옆에서)" value={name} onChange={(e) => setName(e.target.value)} />
         <select aria-label="강도" value={intensity} onChange={(e) => setIntensity(e.target.value as 'heavy' | 'light' | '')}>
           <option value="">강도 없음</option><option value="heavy">고중량</option><option value="light">저중량</option>
         </select>
       </div>
       <div className="row">
         <button className="primary" onClick={() => void saveNew()} disabled={!name.trim() || s.draft.exercises.length === 0}>새 루틴으로 저장</button>
-        {routine?.kind === 'workout' && <button className="chip" onClick={() => void overwrite()}>"{routine.name}" 덮어쓰기</button>}
+        {routine?.kind === 'workout' && <button className="chip" onClick={() => void overwrite()}>"{routineTitle(routine)}" 덮어쓰기</button>}
       </div>
     </fieldset>
   );

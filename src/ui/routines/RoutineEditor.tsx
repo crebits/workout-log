@@ -3,6 +3,7 @@ import { repo } from '../../data/repo';
 import { parseNum } from '../../lib/number';
 import type { Exercise, Routine, RoutineItem } from '../../types';
 import { ExercisePicker } from '../exercise/ExercisePicker';
+import { routineTitle } from '../../workout/routineTitle';
 
 type Draft = { exerciseId: string; min: string; max: string };
 
@@ -14,7 +15,7 @@ export function RoutineEditor(p: { routine?: Routine; nextOrder: number; exercis
     [...(r?.items ?? [])].sort((a, b) => a.order - b.order).map((i) => ({ exerciseId: i.exerciseId, min: String(i.targetRepsMin), max: String(i.targetRepsMax) })),
   );
   const [error, setError] = useState('');
-  const label = r ? `${r.name} 편집` : '새 루틴';
+  const label = r ? `${routineTitle(r)} 편집` : '새 루틴';
 
   const move = (i: number, dir: -1 | 1) => setItems((xs) => { const c = [...xs]; [c[i], c[i + dir]] = [c[i + dir], c[i]]; return c; });
   const setField = (i: number, f: 'min' | 'max', v: string) => setItems((xs) => xs.map((x, j) => (j === i ? { ...x, [f]: v } : x)));
@@ -37,7 +38,7 @@ export function RoutineEditor(p: { routine?: Routine; nextOrder: number; exercis
     <fieldset className="panel" role="group" aria-label={label}>
       <legend>{label}</legend>
       <div className="row">
-        <input aria-label="루틴 이름" placeholder="예: 가슴·삼두 고중량" value={name} onChange={(e) => setName(e.target.value)} />
+        <input aria-label="루틴 이름" placeholder="예: 가슴·삼두 (강도는 옆에서)" value={name} onChange={(e) => setName(e.target.value)} />
         <select aria-label="강도" value={intensity} onChange={(e) => setIntensity(e.target.value as 'heavy' | 'light' | '')}>
           <option value="">강도 없음</option><option value="heavy">고중량</option><option value="light">저중량</option>
         </select>

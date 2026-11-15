@@ -5,23 +5,23 @@ import { CSS } from '@dnd-kit/utilities';
 import { live, repo } from '../../data/repo';
 import type { Routine } from '../../types';
 import { RoutineEditor } from './RoutineEditor';
+import { routineTitle } from '../../workout/routineTitle';
 
-const INTENSITY: Record<string, string> = { heavy: '고중량', light: '저중량' };
 
 function Row(p: { r: Routine; index: number; count: number; onMove(dir: -1 | 1): void; onEdit(): void; onDelete(): void }) {
+  const title = routineTitle(p.r);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: p.r.id });
   return (
     <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`routine-row ${p.r.kind}`}>
-      <button className="handle" aria-label={`${p.r.name} 끌어서 순서 바꾸기`} {...attributes} {...listeners}>≡</button>
+      <button className="handle" aria-label={`${title} 끌어서 순서 바꾸기`} {...attributes} {...listeners}>≡</button>
       <span className="no">{p.index + 1}</span>
-      <span className="name">{p.r.name}</span>
-      {p.r.intensity && <span className="tag">{INTENSITY[p.r.intensity]}</span>}
+      <span className="name">{title}</span>
       {p.r.kind === 'workout' && <span className="muted small">{p.r.items.length}개</span>}
       <span className="spacer" />
-      <button className="icon" aria-label={`${p.r.name} 위로`} disabled={p.index === 0} onClick={() => p.onMove(-1)}>↑</button>
-      <button className="icon" aria-label={`${p.r.name} 아래로`} disabled={p.index === p.count - 1} onClick={() => p.onMove(1)}>↓</button>
-      {p.r.kind === 'workout' && <button className="icon" aria-label={`${p.r.name} 편집`} onClick={p.onEdit}>✎</button>}
-      <button className="icon" aria-label={`${p.r.name} 삭제`} onClick={p.onDelete}>×</button>
+      <button className="icon" aria-label={`${title} 위로`} disabled={p.index === 0} onClick={() => p.onMove(-1)}>↑</button>
+      <button className="icon" aria-label={`${title} 아래로`} disabled={p.index === p.count - 1} onClick={() => p.onMove(1)}>↓</button>
+      {p.r.kind === 'workout' && <button className="icon" aria-label={`${title} 편집`} onClick={p.onEdit}>✎</button>}
+      <button className="icon" aria-label={`${title} 삭제`} onClick={p.onDelete}>×</button>
     </li>
   );
 }
@@ -48,7 +48,7 @@ export function RoutinesScreen() {
     reorder(arrayMove(list, from, to).map((r) => r.id));
   };
   const remove = (r: Routine) => {
-    if (window.confirm(`"${r.name}"을(를) 루틴 목록에서 뺄까요? 지난 기록은 그대로 남아요.`)) void repo.deleteRoutine(r.id);
+    if (window.confirm(`"${routineTitle(r)}"을(를) 루틴 목록에서 뺄까요? 지난 기록은 그대로 남아요.`)) void repo.deleteRoutine(r.id);
   };
 
   return (

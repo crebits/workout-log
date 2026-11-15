@@ -5,6 +5,7 @@ import { computeStatus } from '../../workout/status';
 import type { Entry, ISODate } from '../../types';
 import { DEFAULT_SETTINGS } from '../../types';
 import { Banners } from './Banners';
+import { routineTitle } from '../../workout/routineTitle';
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -23,7 +24,7 @@ export function CalendarScreen({ onOpenDate, today = todayISO() }: { onOpenDate(
     [routines, entries, today, todayLogged, settings, exMap],
   );
   const inferred = new Set(status.inferredRestDates);
-  const routineName = new Map((routines ?? []).map((r) => [r.id, r.name]));
+  const routineName = new Map((routines ?? []).map((r) => [r.id, routineTitle(r)]));
   const exName = new Map((exercises ?? []).map((e) => [e.id, e.name]));
 
   const label = (e: Entry) =>

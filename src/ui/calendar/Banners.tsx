@@ -1,5 +1,6 @@
 import type { AppStatus } from '../../workout/status';
 import type { Routine, Settings } from '../../types';
+import { routineTitle } from '../../workout/routineTitle';
 
 export function Banners(p: {
   status: AppStatus;
@@ -14,7 +15,7 @@ export function Banners(p: {
 
   if (next) {
     const when = p.todayLogged ? '내일' : '다음';
-    lines.push({ key: 'next', tone: 'info', text: next.kind === 'rest' ? `${p.todayLogged ? '내일은' : '오늘은'} 휴식 차례` : `${when}: ${next.name}` });
+    lines.push({ key: 'next', tone: 'info', text: next.kind === 'rest' ? `${p.todayLogged ? '내일은' : '오늘은'} 휴식 차례` : `${when}: ${routineTitle(next)}` });
   }
   if (p.status.deload.active) {
     lines.push({ key: 'deload', tone: 'info', text: '디로드 진행 중' });
